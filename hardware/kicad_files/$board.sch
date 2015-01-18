@@ -1,0 +1,446 @@
+EESchema Schematic File Version 2
+LIBS:power
+LIBS:device
+LIBS:transistors
+LIBS:conn
+LIBS:linear
+LIBS:regul
+LIBS:74xx
+LIBS:cmos4000
+LIBS:adc-dac
+LIBS:memory
+LIBS:xilinx
+LIBS:special
+LIBS:microcontrollers
+LIBS:dsp
+LIBS:microchip
+LIBS:analog_switches
+LIBS:motorola
+LIBS:texas
+LIBS:intel
+LIBS:audio
+LIBS:interface
+LIBS:digital-audio
+LIBS:philips
+LIBS:display
+LIBS:cypress
+LIBS:siliconi
+LIBS:opto
+LIBS:atmel
+LIBS:contrib
+LIBS:valves
+LIBS:custom
+LIBS:esp8266-03
+LIBS:board-cache
+EELAYER 25 0
+EELAYER END
+$Descr User 7874 4528
+encoding utf-8
+Sheet 1 1
+Title "ESP8266 ESP-03 Barometric / Temp Wifi Sensor"
+Date ""
+Rev "1"
+Comp "@xlfe"
+Comment1 ""
+Comment2 ""
+Comment3 ""
+Comment4 ""
+$EndDescr
+$Comp
+L BMP280 U2
+U 1 1 54891E50
+P 5800 1400
+F 0 "U2" H 5800 1700 60  0000 C CNN
+F 1 "BMP280" H 5850 1150 60  0000 C CNN
+F 2 "AA_MyLibs:BMP280" H 5800 1050 31  0000 C CNN
+F 3 "" H 5800 1400 60  0000 C CNN
+	1    5800 1400
+	1    0    0    -1  
+$EndComp
+$Comp
+L R R1
+U 1 1 54892C09
+P 6850 1100
+F 0 "R1" V 6930 1100 40  0000 C CNN
+F 1 "4.7k" V 6857 1101 40  0000 C CNN
+F 2 "Resistors_SMD:R_0603_HandSoldering" V 6780 1100 30  0001 C CNN
+F 3 "ERJ-3EKF4701V" V 7000 1100 30  0000 C CNN
+	1    6850 1100
+	1    0    0    -1  
+$EndComp
+$Comp
+L R R2
+U 1 1 54892DC8
+P 6550 1100
+F 0 "R2" V 6630 1100 40  0000 C CNN
+F 1 "4.7k" V 6557 1101 40  0000 C CNN
+F 2 "Resistors_SMD:R_0603_HandSoldering" V 6480 1100 30  0001 C CNN
+F 3 "ERJ-3EKF4701V" V 6700 1100 30  0000 C CNN
+	1    6550 1100
+	1    0    0    -1  
+$EndComp
+$Comp
+L CP2 C2
+U 1 1 548937FC
+P 4800 2000
+F 0 "C2" H 4800 2100 40  0000 L CNN
+F 1 "10uF" H 4806 1915 40  0000 L CNN
+F 2 "SMD_Packages:SMD-0603_c" H 4838 1850 30  0001 C CNN
+F 3 "1206YC106KAT2A" V 5000 2000 31  0000 C CNN
+	1    4800 2000
+	1    0    0    -1  
+$EndComp
+Text GLabel 6900 1800 3    60   BiDi ~ 0
+SDA
+Text GLabel 6650 1800 3    60   BiDi ~ 0
+SCL
+Text GLabel 900  2050 0    60   Input ~ 0
+SDA
+Text GLabel 900  1300 0    60   Input ~ 0
+SCL
+$Comp
+L LD1117xx L1
+U 1 1 548963A7
+P 4150 1500
+F 0 "L1" H 4150 1550 60  0000 C CNN
+F 1 "LD1117S33CTR" H 4150 1700 60  0000 C CNN
+F 2 "AA_MyLibs:SOT-223" V 4150 1800 60  0001 C CNN
+F 3 "" H 4150 1500 60  0000 C CNN
+	1    4150 1500
+	0    -1   -1   0   
+$EndComp
+$Comp
+L VCC #PWR01
+U 1 1 54898EFE
+P 1250 850
+F 0 "#PWR01" H 1250 700 60  0001 C CNN
+F 1 "VCC" H 1250 1000 60  0000 C CNN
+F 2 "" H 1250 850 60  0000 C CNN
+F 3 "" H 1250 850 60  0000 C CNN
+	1    1250 850 
+	1    0    0    -1  
+$EndComp
+$Comp
+L CONN_01X01 P0
+U 1 1 5489FCDD
+P 850 850
+F 0 "P0" H 850 950 50  0000 C CNN
+F 1 "CONN_VCC" V 950 850 50  0000 C CNN
+F 2 "Socket_Strips:Socket_Strip_Straight_1x01" H 850 850 60  0001 C CNN
+F 3 "" H 850 850 60  0000 C CNN
+	1    850  850 
+	-1   0    0    1   
+$EndComp
+$Comp
+L CONN_01X01 P1
+U 1 1 5489FE3D
+P 3250 1700
+F 0 "P1" H 3250 1800 50  0000 C CNN
+F 1 "BATT" V 3350 1700 50  0000 C CNN
+F 2 "Socket_Strips:Socket_Strip_Straight_1x01" H 3250 1700 60  0001 C CNN
+F 3 "" H 3250 1700 60  0000 C CNN
+	1    3250 1700
+	-1   0    0    1   
+$EndComp
+$Comp
+L CONN_01X01 P2
+U 1 1 5489FF5B
+P 6000 2350
+F 0 "P2" H 6000 2450 50  0000 C CNN
+F 1 "GND" V 6100 2350 50  0000 C CNN
+F 2 "Socket_Strips:Socket_Strip_Straight_1x01" H 6000 2350 60  0001 C CNN
+F 3 "" H 6000 2350 60  0000 C CNN
+	1    6000 2350
+	1    0    0    -1  
+$EndComp
+$Comp
+L CONN_01X01 P3
+U 1 1 548A0455
+P 2750 1850
+F 0 "P3" H 2750 1950 50  0000 C CNN
+F 1 "URXD" V 2850 1850 50  0000 C CNN
+F 2 "Socket_Strips:Socket_Strip_Straight_1x01" H 2750 1850 60  0001 C CNN
+F 3 "" H 2750 1850 60  0000 C CNN
+	1    2750 1850
+	1    0    0    -1  
+$EndComp
+$Comp
+L CONN_01X01 P4
+U 1 1 548A0631
+P 2750 2150
+F 0 "P4" H 2750 2250 50  0000 C CNN
+F 1 "UTXD" V 2850 2150 50  0000 C CNN
+F 2 "Socket_Strips:Socket_Strip_Straight_1x01" H 2750 2150 60  0001 C CNN
+F 3 "" H 2750 2150 60  0000 C CNN
+	1    2750 2150
+	1    0    0    -1  
+$EndComp
+$Comp
+L CONN_01X01 P5
+U 1 1 548A0762
+P 2750 1450
+F 0 "P5" H 2750 1550 50  0000 C CNN
+F 1 "G18 RST" V 2850 1450 50  0000 C CNN
+F 2 "Socket_Strips:Socket_Strip_Straight_1x01" H 2750 1450 60  0001 C CNN
+F 3 "" H 2750 1450 60  0000 C CNN
+	1    2750 1450
+	1    0    0    -1  
+$EndComp
+$Comp
+L CONN_01X01 P7
+U 1 1 548A0925
+P 6450 1700
+F 0 "P7" H 6450 1800 50  0000 C CNN
+F 1 "SCL" V 6550 1700 50  0000 C CNN
+F 2 "Socket_Strips:Socket_Strip_Straight_1x01" H 6450 1700 60  0001 C CNN
+F 3 "" H 6450 1700 60  0000 C CNN
+	1    6450 1700
+	-1   0    0    1   
+$EndComp
+$Comp
+L CONN_01X01 P6
+U 1 1 548A09CB
+P 7100 1700
+F 0 "P6" H 7100 1800 50  0000 C CNN
+F 1 "SDA" V 7200 1700 50  0000 C CNN
+F 2 "Socket_Strips:Socket_Strip_Straight_1x01" H 7100 1700 60  0001 C CNN
+F 3 "" H 7100 1700 60  0000 C CNN
+	1    7100 1700
+	1    0    0    -1  
+$EndComp
+$Comp
+L CONN_01X01 P8
+U 1 1 548A0B8E
+P 800 1650
+F 0 "P8" H 800 1750 50  0000 C CNN
+F 1 "G12" V 900 1650 50  0000 C CNN
+F 2 "Socket_Strips:Socket_Strip_Straight_1x01" H 800 1650 60  0001 C CNN
+F 3 "" H 800 1650 60  0000 C CNN
+	1    800  1650
+	-1   0    0    1   
+$EndComp
+$Comp
+L CONN_01X01 P9
+U 1 1 548A0D78
+P 800 1850
+F 0 "P9" H 800 1950 50  0000 C CNN
+F 1 "G13" V 900 1850 50  0000 C CNN
+F 2 "Socket_Strips:Socket_Strip_Straight_1x01" H 800 1850 60  0001 C CNN
+F 3 "" H 800 1850 60  0000 C CNN
+	1    800  1850
+	-1   0    0    1   
+$EndComp
+$Comp
+L CONN_01X01 P10
+U 1 1 548A100D
+P 1550 2550
+F 0 "P10" H 1550 2650 50  0000 C CNN
+F 1 "G0 UPL" V 1650 2550 50  0000 C CNN
+F 2 "Socket_Strips:Socket_Strip_Straight_1x01" H 1550 2550 60  0001 C CNN
+F 3 "" H 1550 2550 60  0000 C CNN
+	1    1550 2550
+	1    0    0    -1  
+$EndComp
+$Comp
+L C C1
+U 1 1 548CE96F
+P 3450 2000
+F 0 "C1" H 3450 2100 40  0000 L CNN
+F 1 "100nF" H 3456 1915 40  0000 L CNN
+F 2 "SMD_Packages:SMD-0603_c" H 3488 1850 30  0001 C CNN
+F 3 "06035C104JAT2A" V 3700 2000 31  0000 C CNN
+	1    3450 2000
+	1    0    0    -1  
+$EndComp
+$Comp
+L ESP8266-03 U1
+U 1 1 54891FFC
+P 1800 1850
+F 0 "U1" H 1750 1900 60  0000 C CNN
+F 1 "ESP8266-03" H 1800 1450 60  0000 C CNN
+F 2 "AA_MyLibs:ESP8266-03" H 1800 2300 60  0001 C CNN
+F 3 "" H 1800 1850 60  0000 C CNN
+	1    1800 1850
+	1    0    0    -1  
+$EndComp
+$Comp
+L CONN_01X01 P11
+U 1 1 548D1870
+P 2500 1150
+F 0 "P11" H 2500 1250 50  0000 C CNN
+F 1 "ANT" V 2600 1150 50  0000 C CNN
+F 2 "Socket_Strips:Socket_Strip_Straight_1x01" H 2500 1150 60  0001 C CNN
+F 3 "" H 2500 1150 60  0000 C CNN
+	1    2500 1150
+	0    -1   -1   0   
+$EndComp
+Wire Wire Line
+	5850 1200 5900 1200
+Wire Wire Line
+	1000 1750 1550 1750
+Wire Wire Line
+	1000 1650 1000 1750
+Connection ~ 3450 1700
+Wire Wire Line
+	3450 1000 4100 1000
+Wire Wire Line
+	3450 1000 3450 1800
+Connection ~ 3450 2350
+Wire Wire Line
+	3450 2200 3450 2350
+Wire Wire Line
+	1750 2350 5800 2350
+Wire Wire Line
+	1050 850  6850 850 
+Connection ~ 6650 1500
+Wire Wire Line
+	6850 1500 6850 1350
+Connection ~ 6550 1400
+Wire Wire Line
+	6550 1350 6550 1400
+Wire Wire Line
+	6900 1400 6900 1800
+Wire Wire Line
+	5900 1400 6900 1400
+Wire Wire Line
+	2550 1950 1950 1950
+Wire Wire Line
+	2550 2150 2550 1950
+Wire Wire Line
+	2550 1850 1950 1850
+Wire Wire Line
+	2550 1750 1950 1750
+Wire Wire Line
+	2550 1450 2550 1750
+Wire Wire Line
+	2500 1550 2500 1350
+Wire Wire Line
+	1950 1550 2500 1550
+Wire Wire Line
+	1950 2150 1750 2150
+Connection ~ 1750 2150
+Connection ~ 1750 1550
+Wire Wire Line
+	1750 1650 1950 1650
+Wire Wire Line
+	1000 1850 1550 1850
+Wire Wire Line
+	1150 1300 900  1300
+Wire Wire Line
+	1150 1650 1150 1300
+Wire Wire Line
+	1550 1650 1150 1650
+Connection ~ 1750 850 
+Wire Wire Line
+	1750 850  1750 1650
+Wire Wire Line
+	1550 1550 1750 1550
+Wire Wire Line
+	1350 2150 1350 2550
+Wire Wire Line
+	1550 2150 1350 2150
+Connection ~ 5800 1500
+Connection ~ 5800 2350
+Wire Wire Line
+	5050 1400 5050 850 
+Connection ~ 5050 1400
+Wire Wire Line
+	5700 1400 5050 1400
+Connection ~ 5050 1200
+Connection ~ 5050 850 
+Wire Wire Line
+	5700 1200 5050 1200
+Connection ~ 4800 850 
+Wire Wire Line
+	4800 1800 4800 850 
+Connection ~ 4800 2350
+Wire Wire Line
+	4800 2200 4800 2350
+Connection ~ 4100 2350
+Wire Wire Line
+	4100 1700 4100 2350
+Connection ~ 4650 850 
+Wire Wire Line
+	4650 1500 4650 850 
+Wire Wire Line
+	4200 1500 4650 1500
+Wire Wire Line
+	4100 1000 4100 1300
+Wire Wire Line
+	1750 1950 1750 2350
+Wire Wire Line
+	1550 1950 1750 1950
+Wire Wire Line
+	900  2050 1550 2050
+Wire Wire Line
+	6650 1500 6650 1800
+Wire Wire Line
+	5900 1500 6850 1500
+Connection ~ 6400 850 
+Wire Wire Line
+	6400 1300 6400 850 
+Wire Wire Line
+	5900 1300 6400 1300
+Connection ~ 5800 1300
+Wire Wire Line
+	5800 2350 5800 1300
+Wire Wire Line
+	5700 1500 5800 1500
+Connection ~ 5900 1200
+Wire Wire Line
+	5850 1300 5850 1200
+Wire Wire Line
+	5700 1300 5850 1300
+$Comp
+L R R3
+U 1 1 548E1573
+P 1500 2900
+F 0 "R3" V 1580 2900 40  0000 C CNN
+F 1 "68 O" V 1507 2901 40  0000 C CNN
+F 2 "Resistors_SMD:R_0603_HandSoldering" V 1650 2900 30  0001 C CNN
+F 3 "ERJ-3EKF68R1V" V 1650 2900 30  0000 C CNN
+	1    1500 2900
+	0    1    1    0   
+$EndComp
+Wire Wire Line
+	1000 1850 1000 2900
+$Comp
+L LED D0
+U 1 1 548E1765
+P 2200 2900
+F 0 "D0" H 2200 3000 50  0000 C CNN
+F 1 "LED" H 2200 2800 50  0000 C CNN
+F 2 "LEDs:LED-0603" H 2200 2700 31  0001 C CNN
+F 3 "TLMO1100-GS08" H 2200 2700 31  0000 C CNN
+	1    2200 2900
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	2400 2900 2400 2350
+Connection ~ 2400 2350
+Wire Wire Line
+	1000 2900 1250 2900
+Wire Wire Line
+	1750 2900 2000 2900
+Text Label 2650 850  0    60   ~ 0
+VCC
+Text Label 5250 2350 0    60   ~ 0
+GND
+Text Label 3450 1400 1    60   ~ 0
+BATT
+Text Label 6900 1600 0    60   ~ 0
+SDA
+Text Label 6650 1600 0    60   ~ 0
+SCL
+Text Label 2550 2000 0    60   ~ 0
+UTXD
+Text Label 2450 1850 0    60   ~ 0
+URXD
+Wire Wire Line
+	6400 850  6550 850 
+Connection ~ 6550 850 
+Connection ~ 6650 1700
+Connection ~ 6900 1700
+Text Notes 4600 2900 0    60   ~ 0
+GPIO18 RST needs to be tied to VCC to allow deep sleep\n
+$EndSCHEMATC

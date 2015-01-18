@@ -1,0 +1,150 @@
+Cmp-Mod V01 Created by Cvpcb 0.201412131231+5320~19~ubuntu14.04.1-product   date = Mon 15 Dec 2014 10:25:59 AEDT
+
+BeginCmp
+TimeStamp = /548CE96F;
+Reference = C1;
+ValeurCmp = 100nF;
+IdModule  = SMD_Packages:SMD-0603_c;
+EndCmp
+
+BeginCmp
+TimeStamp = /548937FC;
+Reference = C2;
+ValeurCmp = 10uF;
+IdModule  = SMD_Packages:SMD-0603_c;
+EndCmp
+
+BeginCmp
+TimeStamp = /548E1765;
+Reference = D0;
+ValeurCmp = LED;
+IdModule  = LEDs:LED-0603;
+EndCmp
+
+BeginCmp
+TimeStamp = /548963A7;
+Reference = L1;
+ValeurCmp = LD1117S33CTR;
+IdModule  = AA_MyLibs:SOT-223;
+EndCmp
+
+BeginCmp
+TimeStamp = /5489FCDD;
+Reference = P0;
+ValeurCmp = CONN_VCC;
+IdModule  = Socket_Strips:Socket_Strip_Straight_1x01;
+EndCmp
+
+BeginCmp
+TimeStamp = /5489FE3D;
+Reference = P1;
+ValeurCmp = BATT;
+IdModule  = Socket_Strips:Socket_Strip_Straight_1x01;
+EndCmp
+
+BeginCmp
+TimeStamp = /5489FF5B;
+Reference = P2;
+ValeurCmp = GND;
+IdModule  = Socket_Strips:Socket_Strip_Straight_1x01;
+EndCmp
+
+BeginCmp
+TimeStamp = /548A0455;
+Reference = P3;
+ValeurCmp = URXD;
+IdModule  = Socket_Strips:Socket_Strip_Straight_1x01;
+EndCmp
+
+BeginCmp
+TimeStamp = /548A0631;
+Reference = P4;
+ValeurCmp = UTXD;
+IdModule  = Socket_Strips:Socket_Strip_Straight_1x01;
+EndCmp
+
+BeginCmp
+TimeStamp = /548A0762;
+Reference = P5;
+ValeurCmp = G18 RST;
+IdModule  = Socket_Strips:Socket_Strip_Straight_1x01;
+EndCmp
+
+BeginCmp
+TimeStamp = /548A09CB;
+Reference = P6;
+ValeurCmp = SDA;
+IdModule  = Socket_Strips:Socket_Strip_Straight_1x01;
+EndCmp
+
+BeginCmp
+TimeStamp = /548A0925;
+Reference = P7;
+ValeurCmp = SCL;
+IdModule  = Socket_Strips:Socket_Strip_Straight_1x01;
+EndCmp
+
+BeginCmp
+TimeStamp = /548A0B8E;
+Reference = P8;
+ValeurCmp = G12;
+IdModule  = Socket_Strips:Socket_Strip_Straight_1x01;
+EndCmp
+
+BeginCmp
+TimeStamp = /548A0D78;
+Reference = P9;
+ValeurCmp = G13;
+IdModule  = Socket_Strips:Socket_Strip_Straight_1x01;
+EndCmp
+
+BeginCmp
+TimeStamp = /548A100D;
+Reference = P10;
+ValeurCmp = G0 UPL;
+IdModule  = Socket_Strips:Socket_Strip_Straight_1x01;
+EndCmp
+
+BeginCmp
+TimeStamp = /548D1870;
+Reference = P11;
+ValeurCmp = ANT;
+IdModule  = Socket_Strips:Socket_Strip_Straight_1x01;
+EndCmp
+
+BeginCmp
+TimeStamp = /54892C09;
+Reference = R1;
+ValeurCmp = 4.7k;
+IdModule  = Resistors_SMD:R_0603_HandSoldering;
+EndCmp
+
+BeginCmp
+TimeStamp = /54892DC8;
+Reference = R2;
+ValeurCmp = 4.7k;
+IdModule  = Resistors_SMD:R_0603_HandSoldering;
+EndCmp
+
+BeginCmp
+TimeStamp = /548E1573;
+Reference = R3;
+ValeurCmp = 68 O;
+IdModule  = Resistors_SMD:R_0603_HandSoldering;
+EndCmp
+
+BeginCmp
+TimeStamp = /54891FFC;
+Reference = U1;
+ValeurCmp = ESP8266-03;
+IdModule  = AA_MyLibs:ESP8266-03;
+EndCmp
+
+BeginCmp
+TimeStamp = /54891E50;
+Reference = U2;
+ValeurCmp = BMP280;
+IdModule  = AA_MyLibs:BMP280;
+EndCmp
+
+EndListe
