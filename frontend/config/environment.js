@@ -25,6 +25,13 @@ module.exports = function(environment) {
     // ENV.APP.LOG_TRANSITIONS = true;
     // ENV.APP.LOG_TRANSITIONS_INTERNAL = true;
     // ENV.APP.LOG_VIEW_LOOKUPS = true;
+
+      ENV.api_host = 'http://192.168.1.4:8080';
+      ENV.api_endpoint = 'api';
+
+      ENV.contentSecurityPolicy = {
+          'connect-src': "'self' http://192.168.1.4:8080"
+      }
   }
 
   if (environment === 'test') {
@@ -40,6 +47,8 @@ module.exports = function(environment) {
   }
 
   if (environment === 'production') {
+      ENV.api_host = 'http://iolggr.appspot.com'
+      ENV.api_endpoint = 'api';
 
   }
 

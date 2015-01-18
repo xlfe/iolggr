@@ -1,17 +1,17 @@
 # See http://help.github.com/ignore-files/ for more about ignoring files.
 
 # compiled output
-/dist
-/tmp
+frontend/dist
+frontend/tmp
 
 # dependencies
-/node_modules
-/bower_components
+frontend/node_modules
+frontend/bower_components
 
 # misc
-/.sass-cache
-/connect.lock
-/coverage/*
-/libpeerconnection.log
-npm-debug.log
-testem.log
+frontend/.sass-cache
+frontend/connect.lock
+frontend/coverage/*
+frontend/libpeerconnection.log
+frontend/npm-debug.log
+frontend/testem.log
