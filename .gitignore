@@ -15,3 +15,8 @@ frontend/coverage/*
 frontend/libpeerconnection.log
 frontend/npm-debug.log
 frontend/testem.log
+
+#gae files
+iolggr/static
+*.pyc
+.idea/
