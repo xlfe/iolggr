@@ -1,37 +1,110 @@
 import Ember from 'ember';
 //import d3 from 'd3';
+/* global d3 */
+/* global moment */
+
+var tz = "Australia/Sydney",
+    datetime_local = 'dddd, MMMM Do YYYY, h:mm:ss a';
+
+
+var chart_types = {
+    temp: {
+        yAccessor: function(d){
+            return +d.temp/100;
+        },
+        yFormat: function(d){
+            return d+"°C";
+        }
+    },
+    pressure: {
+        yAccessor: function(d){
+            return +d.pressure/1000;
+        },
+        yFormat: function(d){
+            return (Math.round(d*100)/100)+"kPa";
+        }
+    },
+    delay: {
+        yAccessor: function(d){
+            return +d.delay;
+        },
+        yFormat: function(d){
+            return d+" ms";
+        }
+    },
+    rssi: {
+        yAccessor: function(d){
+            return d.rssi;
+        },
+        yFormat: function(d){
+            return d;
+        }
+    }
+}
+
+
+
 
 export default Ember.Component.extend({
+    height: 180,
+    width: 960,
+    margins: {
+        top: 20,
+        bottom: 50,
+        left: 100,
+        right: 20
+    },
+    _get: function(nm) {
+        var vars = this.get('vars');
+
+        if (nm in vars){
+            return vars[nm];
+        }
+
+        return this.get(nm);
+    },
+    vars: function(){
+        var ct = this.get('chart-type');
+        return chart_types[ct];
+    }.property('chart-type'),
+    xFormat: function(d){
+        return moment(d).fromNow();
+    },
     didInsertElement: function () {
         var data = this.get('data'),
-            d = d3.select(this.$('#chart')[0])
+            _this = this,
+            d = d3.select(this.$('#chart')[0]);
 
-        var margin = {top: 20, right: 20, bottom: 30, left: 50},
-            width = 960 - margin.left - margin.right,
-            height = 500 - margin.top - margin.bottom;
-
-        var parseDate = d3.time.format("%Y-%m-%dT%H:%M:%S").parse;
+        var margin = this.get('margins'),
+            width = this.get('width') - margin.left - margin.right,
+            height = this.get('height') - margin.top - margin.bottom;
 
         var x = d3.time.scale()
-            .range([0, width]);
+            .range([0, width])
+            .nice(d3.time.hour);
 
         var y = d3.scale.linear()
-            .range([height, 0]);
+            .range([height, 0])
+            .nice();
 
         var xAxis = d3.svg.axis()
             .scale(x)
-            .orient("bottom");
+            .orient("bottom")
+            .ticks(4)
+            .tickFormat(_this._get("xFormat"));
 
         var yAxis = d3.svg.axis()
             .scale(y)
-            .orient("left");
+            .orient("left")
+            .ticks(4).tickFormat(_this._get("yFormat"));
 
         var line = d3.svg.line()
             .x(function (d) {
                 return x(d.dt);
             })
             .y(function (d) {
-                return y(d.temp);
+                d = _this._get('yAccessor')(d);
+                return y(d);
             });
 
         var svg = d.append("svg")
@@ -41,15 +114,15 @@ export default Ember.Component.extend({
             .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
         data.forEach(function (d) {
-            d.dt = parseDate(d.dt);
-            console.log(d);
+            d.dt = moment.utc(d.dt).tz(tz);
+
         });
 
         x.domain(d3.extent(data, function (d) {
             return d.dt;
         }));
         y.domain(d3.extent(data, function (d) {
-            return d.temp;
+            return _this._get('yAccessor')(d);
         }));
 
         svg.append("g")
@@ -59,20 +132,12 @@ export default Ember.Component.extend({
 
         svg.append("g")
             .attr("class", "y axis")
-            .call(yAxis)
-            .append("text")
-            .attr("transform", "rotate(-90)")
-            .attr("y", 6)
-            .attr("dy", ".71em")
-            .style("text-anchor", "end")
-            .text("Temp (C)");
+            .call(yAxis);
 
         svg.append("path")
             .datum(data)
             .attr("class", "line")
             .attr("d", line);
 
-
-        console.log("on the page!", d);
     }
 });

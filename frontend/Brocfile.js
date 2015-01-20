@@ -31,6 +31,8 @@ app.import('bower_components/bootstrap/dist/js/bootstrap.js');
 
 
 app.import('bower_components/d3/d3.min.js');
+app.import('bower_components/moment/moment.js');
+app.import('bower_components/moment-timezone/builds/moment-timezone-with-data-2010-2020.min.js');
 
 
 

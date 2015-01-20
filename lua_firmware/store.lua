@@ -2,8 +2,8 @@
 s = {
     log_host = "iolggr.appspot.com",
     log_port = 80,
-    mins_sleep = 1,
-    mode = 0,
+    mins_sleep = 10,
+    mode = 1,
     s_name = "",
     ssid = "",
     pass = "",

@@ -19,6 +19,10 @@ handlers:
   static_files: static/index.html
   upload: static/index.html
 
+- url: /(device)/(.*)
+  static_files: static/index.html
+  upload: static/index.html
+
 - url: /
   static_dir: static
 

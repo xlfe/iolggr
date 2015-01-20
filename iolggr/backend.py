@@ -135,6 +135,7 @@ class device_handler(webapp2.RequestHandler):
         results = []
         for r in _results:
             p = r.params.copy()
+            delay = int(p['delay']) - int(p['w_delay'])
             for d in ['AP-mode','AP-bssid','AP-authmode','AP-channel','w_att','c_att','delay','w_delay','name']:
                 del p[d]
             for k,v in p.iteritems():
@@ -142,6 +143,7 @@ class device_handler(webapp2.RequestHandler):
             p['rssi'] = p['AP-rssi']
             del p['AP-rssi']
             p['dt'] = r.timestamp
+            p['delay'] = delay
             results.append(p)
 
 

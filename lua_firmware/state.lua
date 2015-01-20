@@ -25,7 +25,7 @@ if s.mode == 1 then
         tmr.stop(0)
         tmr.alarm(0, 1000, 1, check_conn)
     end)
-    tmr.alarm(3, 20000, 0, do_r)
+    tmr.alarm(3, 20000, 0, function() do_r(s.mins_sleep*60) end)
 else
     print("MODE: Config")
     dofile("config.lua")

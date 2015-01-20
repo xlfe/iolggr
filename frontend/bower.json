@@ -14,7 +14,9 @@
     "ember-qunit-notifications": "0.0.4",
     "qunit": "~1.15.0",
     "bootstrap": "~3.3.1",
-    "d3": "~3.5.3"
+    "d3": "~3.5.3",
+    "moment-timezone": "~0.3.0",
+    "moment": "~2.9.0"
   },
   "resolutions": {
     "handlebars": "2.0.0"

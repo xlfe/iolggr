@@ -1,3 +1,9 @@
-<h1>Device: {{name}} </h1>
+<h3>{{name}} </h3>
 
-{{d3-chart data=results}}
+{{d3-chart data=results chart-type="temp" name="Temperature"}}
+
+{{d3-chart data=results chart-type="pressure" name="Atmospheric pressure"}}
+
+{{d3-chart data=results chart-type="rssi" name="Wifi - received signal strength"}}
+
+{{d3-chart data=results chart-type="delay" name='Approximate latency to "the cloud"'}}
