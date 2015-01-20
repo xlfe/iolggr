@@ -10,7 +10,7 @@ import json
 from json.encoder import INFINITY,encode_basestring,encode_basestring_ascii,c_make_encoder,_make_iterencode
 from google.appengine.ext import ndb
 from models import iot_event
-from datetime import date,datetime,time
+from datetime import date,datetime,time,timedelta
 
 class NDBEncoder(json.JSONEncoder):
     """JSON encoding for NDB models and properties"""
@@ -127,7 +127,11 @@ class device_handler(webapp2.RequestHandler):
 
     def get(self,dev_id):
 
-        _results = iot_event.query().filter(iot_event.mac == dev_id).order(-iot_event.timestamp).fetch(1000)
+        start = datetime.now() - timedelta(hours=24)
+        end = datetime.now()
+
+        _results = iot_event.query().filter(ndb.AND(iot_event.mac == dev_id,iot_event.timestamp >= start,iot_event.timestamp<= end))\
+            .order(-iot_event.timestamp).fetch(1000)
 
         if _results == []:
             return self.get_response(404,{})
