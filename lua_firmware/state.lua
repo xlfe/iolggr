@@ -1,8 +1,8 @@
 --unable to connect to wifi - reboot into config mode?
 if s.wifi_attempts > 50 then
-    s.wifi_attempts = 41
+    s.wifi_attempts = 48
     s.mode = 0
-    set_vars(s)
+    set_vars()
     file.reset() --Reset system config...
 end
 if s.mode == 1 then

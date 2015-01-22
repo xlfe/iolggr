@@ -1,5 +1,4 @@
 function check_conn()
-    wifi.sleeptype(0) -- 0=NONE_SLEEP_T, 1 =LIGHT_SLEEP_T, 2 = MODEM_SLEEP_T
     if up_ms() > 20000 then
         bmp.blink(2)
         do_r(s.mins_sleep*60)
