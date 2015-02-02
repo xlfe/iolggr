@@ -1,5 +1,5 @@
 application: iolggr
-version: 2
+version: 3
 runtime: python27
 api_version: 1
 threadsafe: yes
@@ -11,6 +11,10 @@ handlers:
 
 - url: /log
   script: main.app
+
+- url: /admin/rollup
+  script: main.app
+  login: admin
 
 - url: /api/.*
   script: backend.api
@@ -29,3 +33,7 @@ handlers:
 libraries:
 - name: webapp2
   version: "2.5.2"
+
+builtins:
+  - deferred: on
+

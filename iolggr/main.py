@@ -1,61 +1,59 @@
 #!/usr/bin/env python
-#
-# Copyright 2007 Google Inc.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-#
+
 import webapp2
 import json
 import logging
 
-from models import iot_event
+from google.appengine.ext import deferred
+from models import iot_event,iot_exception,rollup_events
 
-class MainHandler(webapp2.RequestHandler):
+class RollupHandler(webapp2.RequestHandler):
     def get(self):
-        self.response.write('Hello world!')
+        """Rollup logs into weeks"""
 
+        deferred.defer(rollup_events,_queue='rollup')
 
 class LogHandler(webapp2.RequestHandler):
-
     def post(self):
-        log = self.request.headers['X-Log']
-        mac = self.request.headers['X-Mac']
+
         params = {}
-        params['name'] = self.request.headers['X-Name']
-        try:
-            params['AP-mode'] = self.request.headers['X-Mode']
-            stats = self.request.headers['X-Stats'].split(',')
+        mac = self.request.headers['X-Mac']
 
-            for k,v in enumerate(['authmode','rssi','bssid','channel']):
-                params['AP-{}'.format(v)] = stats[k]
-        except:
-            pass
+        #populate params with all stats received from device
+        params['AP-mode'] = self.request.headers['X-Mode']
 
-        try:
-            for param in log.strip().split('&'):
-                k,v = param.split('=')
-                params[k]= v
-        except:
-            pass
+        stats = self.request.headers['X-Stats'].split(',')
+        for k,v in enumerate(['authmode','rssi','bssid','channel']):
+            params['AP-{}'.format(v)] = stats[k]
 
-        bssid = None
-        if 'AP-bssid' in params:
-            bssid = params['AP-bssid']
+        log = self.request.headers['X-Log']
+        for param in log.strip().split('&'):
+            k,v = param.split('=')
+            params[k]= v
 
-        i=iot_event(mac = mac,bssid=bssid,params=params)
+        bssid = None if 'AP-bssid' not in params else params['AP-bssid']
+
+
+        #check for exceptions, log them if they exist
+        c_att = int(params['c_att'])
+        w_att = int(params['w_att'])
+
+        assert c_att < 60 and w_att < 60
+
+        if c_att > 1:
+            iot_exception(mac=mac,bssid=bssid,exception='CONNECTION',params=params).put()
+
+        if w_att > 1:
+            iot_exception(mac=mac,bssid=bssid,exception='WIFI',params=params).put()
+
+        #save the event
+        i=iot_event(mac=mac, bssid=bssid, params=iot_event.mk_params(params))
+        i.remote_addr = self.request.remote_addr
         i.put()
+
+        #show the log
         log = "MAC = {}\n".format(mac)
-        for k,v in params.iteritems():
+        for k,v in i.params.iteritems():
             log += "{} = {}\n".format(k,v)
 
         logging.info(log)
@@ -63,6 +61,6 @@ class LogHandler(webapp2.RequestHandler):
 
 
 app = webapp2.WSGIApplication([
-    ('/', MainHandler),
+    ('/admin/rollup', RollupHandler),
     ('/log',LogHandler),
 ], debug=True)

@@ -14,4 +14,3 @@ indexes:
   properties:
   - name: mac
   - name: timestamp
-    direction: desc

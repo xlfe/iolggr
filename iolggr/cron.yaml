@@ -1,0 +1,4 @@
+cron:
+- description: Rollup job
+  url: /admin/rollup
+  schedule: every 3 hours

@@ -9,7 +9,7 @@ import logging
 import json
 from json.encoder import INFINITY,encode_basestring,encode_basestring_ascii,c_make_encoder,_make_iterencode
 from google.appengine.ext import ndb
-from models import iot_event
+from models import iot_event,iot_week
 from datetime import date,datetime,time,timedelta
 
 class NDBEncoder(json.JSONEncoder):
@@ -127,42 +127,62 @@ class device_handler(webapp2.RequestHandler):
 
     def get(self,dev_id):
 
-        start = datetime.now() - timedelta(hours=24)
-        end = datetime.now()
+        if dev_id =='9be4c11340c8':
+            dev_id = '1340c89be4c1'
 
-        _results = iot_event.query().filter(ndb.AND(iot_event.mac == dev_id,iot_event.timestamp >= start,iot_event.timestamp<= end))\
-            .order(-iot_event.timestamp).fetch(1000)
+        now = datetime.now()
 
-        if _results == []:
+        week = iot_week.query() \
+            .filter(iot_week.mac == dev_id,
+                    iot_week.start == iot_week.dt_to_week(iot_week.dt_to_week(now))).get()
+
+
+        last_week = iot_week.query() \
+            .filter(iot_week.mac == dev_id,
+                    iot_week.start == iot_week.dt_to_week(iot_week.dt_to_week(now + timedelta(days=-7)))).get()
+
+        try:
+            results = week.data
+            start = week.updated
+        except AttributeError:
+            results = {}
+            start = now - timedelta(hours=24)
+
+        try:
+            results.update(last_week.data)
+        except AttributeError:
+            pass
+
+        additional_results = iot_event.query()\
+            .filter(iot_event.mac == dev_id,
+                    iot_event.timestamp >= start)\
+            .fetch(1000)
+
+        if len(additional_results) == 0 and week is None:
             return self.get_response(404,{})
 
-        results = []
-        for r in _results:
-            p = r.params.copy()
-            delay = int(p['delay']) - int(p['w_delay'])
-            for d in ['AP-mode','AP-bssid','AP-authmode','AP-channel','w_att','c_att','delay','w_delay','name']:
-                del p[d]
-            for k,v in p.iteritems():
-                p[k] = int(v)
-            p['rssi'] = p['AP-rssi']
-            del p['AP-rssi']
-            p['dt'] = r.timestamp
-            p['delay'] = delay
-            results.append(p)
+        for a in additional_results:
+            dt = a.timestamp.replace(microsecond=0).isoformat()
+            results[dt]= a.params
 
 
+        included = ['temp','pressure']
+        for dt in results:
+            to_del =[]
+            for k in results[dt]:
+                if k not in included:
+                    to_del.append(k)
+            for k in to_del:
+                del results[dt][k]
 
         device = {
             'device': {
-                'name': _results[0].params['name'],
                 'id':dev_id,
                 'results': results
             }
         }
 
         return self.get_response(200,device)
-
-
 
 
 

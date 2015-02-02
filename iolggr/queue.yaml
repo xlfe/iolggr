@@ -1,0 +1,4 @@
+queue:
+- name: rollup
+  rate: 1/s
+  max_concurrent_requests: 1
