@@ -6,7 +6,6 @@ import datetime
 import json
 
 
-
 class iot_week(ndb.Model):
     WEEK_START_DAY = 1 #Monday
     """1 week worth of data"""
@@ -15,16 +14,15 @@ class iot_week(ndb.Model):
     end = ndb.ComputedProperty(lambda x: x.start + datetime.timedelta(days=7))
 
     updated = ndb.DateTimeProperty(auto_now=True)
-
+    remote_addrs = ndb.StringProperty(repeated=True)
     mac = ndb.StringProperty(required=True)
-
+    name = ndb.StringProperty()
     data = ndb.JsonProperty(compressed=False, indexed=False, default={})
 
     @classmethod
     def dt_to_week(cls,dt):
         start = dt.replace(hour=0, minute=0, second=0, microsecond=0) - datetime.timedelta(days=dt.isoweekday() - 1)
         return start
-
 
     @classmethod
     def get_or_create(cls,mac,week):
@@ -40,8 +38,7 @@ class iot_exception(ndb.Model):
     timestamp = ndb.DateTimeProperty(auto_now_add=True)
     mac = ndb.StringProperty()
     exception = ndb.StringProperty(choices=['CONNECTION','WIFI'])
-    data = ndb.JsonProperty(indexed=False,default={})
-
+    params = ndb.JsonProperty(indexed=False)
 
 
 class iot_event(ndb.Model):
@@ -49,16 +46,19 @@ class iot_event(ndb.Model):
         Params should include:
 
         Store these for device identification:
-            AP-bssid = fc:75:16:53:ef:dc
             MAC = 1340c89be4c1
+            remote_addr
 
         Dont store these:
-            name = Office
+            AP-bssid = fc:75:16:53:ef:dc
             w_att = 1
             c_att = 1
             AP-authmode = 2
             AP-mode = 1
             AP-channel = 6
+
+        Keep this in iot_event:
+            name = Office
 
         Keep these in params:
             pressure = 94799
@@ -78,8 +78,8 @@ class iot_event(ndb.Model):
 
     timestamp = ndb.DateTimeProperty(auto_now_add=True)
     mac = ndb.StringProperty()
-    bssid = ndb.StringProperty()
     remote_addr = ndb.StringProperty()
+    name = ndb.StringProperty()
     params = ndb.JsonProperty(indexed=False)
 
 
@@ -114,7 +114,6 @@ def rollup_events():
     for e in events:
         mac_weeks[e.mac][iot_week.dt_to_week(e.timestamp)].append(e)
 
-
     for mac,weeks in mac_weeks.iteritems():
 
         for week,events in weeks.iteritems():
@@ -135,12 +134,13 @@ def rollup_events():
                 dt = e.timestamp.replace(microsecond=0).isoformat()
                 rollup.data[dt] = d
 
+                if e.remote_addr not in rollup.remote_addrs:
+                    rollup.remote_addrs.append(e.remote_addr)
+                rollup.name = e.name
+
             logging.info('{} events for {} added into rollup({}) with {} total events'.format(len(events),mac,week,len(rollup.data)))
             rollup.put()
             ndb.delete_multi([e.key for e in events])
-
-
-
 
 
 

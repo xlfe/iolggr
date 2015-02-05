@@ -7,7 +7,7 @@ var tz = "Australia/Sydney",
     datetime_local = 'dddd, MMMM Do YYYY, h:mm:ss a';
 
 var formatDate = function (d) {
-    return moment(d).format("ddd, h:mA");
+    return moment(d).format("ddd, hh:mmA");
 };
 
 var chart_types = {
@@ -32,26 +32,27 @@ var chart_types = {
             return +d.delay;
         },
         yFormat: function (d) {
-            return d + " ms";
+            return d + "ms";
         }
     },
     rssi: {
         yAccessor: function (d) {
-            return d.rssi;
+            return +d.rssi;
         },
         yFormat: function (d) {
             return d;
         }
     }
-}
+};
 
 export default Ember.Component.extend({
-    height: 180,
+    brush_height: 40,
+    height: 210,
     width: 960,
     margins: {
         top: 20,
-        bottom: 50,
-        left: 100,
+        bottom: 20,
+        left: 80,
         right: 20
     },
     _get: function (nm) {
@@ -71,35 +72,42 @@ export default Ember.Component.extend({
         return moment(d).fromNow();
     },
     didInsertElement: function () {
-        var data = this.get('data'),
+        var _data = this.get('data'),
+            data = [],
             _this = this,
-            bisectDate = d3.bisector(function (a, b) {
-                return b - a.dt;
-            }).left,
+            bisectDate = d3.bisector(function (a) { return a.dt;}).left,
             d = d3.select(this.$('#chart')[0]);
 
         var margin = this.get('margins'),
             width = this.get('width') - margin.left - margin.right,
+            brush_height = this.get('brush_height'),
             height = this.get('height') - margin.top - margin.bottom;
 
+        d3.entries(_data).forEach(function(_){
+            _.value.dt = moment.utc(_.key).tz(tz).toDate();
+            data.pushObject(_.value);
+        });
+
+        data = data.sort(function(a,b){
+            return a.dt - b.dt;
+        });
+
         var x = d3.time.scale()
-            .range([0, width])
-            .nice(d3.time.hour);
+            .range([0, width]);
 
         var y = d3.scale.linear()
-            .range([height, 0])
-            .nice();
+            .range([height, 0]);
 
         var xAxis = d3.svg.axis()
             .scale(x)
             .orient("bottom")
-            .ticks(4)
             .tickFormat(_this._get("xFormat"));
 
         var yAxis = d3.svg.axis()
             .scale(y)
             .orient("left")
-            .ticks(4).tickFormat(_this._get("yFormat"));
+            .ticks(4)
+            .tickFormat(_this._get("yFormat"));
 
         var line = d3.svg.line()
             .x(function (d) {
@@ -115,13 +123,14 @@ export default Ember.Component.extend({
             .append("g")
             .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
-        data.forEach(function (d) {
-            d.dt = moment.utc(d.dt).tz(tz).toDate();
-        });
 
-        x.domain(d3.extent(data, function (d) {
-            return d.dt;
-        }));
+        //x.domain(d3.extent(data, function (d) {
+        //    return d.dt;
+        //}));
+
+        x.domain([moment().subtract(48,'hours').toDate(),moment().toDate()])
+        .clamp(true);
+
         y.domain(d3.extent(data, function (d) {
             return _this._get('yAccessor')(d);
         }));
@@ -201,11 +210,10 @@ export default Ember.Component.extend({
 
         function mousemove() {
             var x0 = x.invert(d3.mouse(this)[0]),
-                i = bisectDate(data, x0),
+                i = bisectDate(data, x0,1),
                 d0 = data[i - 1],
                 d1 = data[i],
-                offset = (i - (data.length / 2)) / data.length,
-                d = x0 - d0.dt < d1.dt - x0 ? d1 : d0;
+                  d = x0 - d0.dt > d1.dt - x0 ? d1 : d0;
 
             focus.select("circle.pin")
                 .attr("transform",

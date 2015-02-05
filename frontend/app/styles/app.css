@@ -19,7 +19,7 @@ html, body {
     stroke: steelblue;
 }
 
-text.label-text {
+text.label-text, .tick text {
     font-size: 12px;
 }
 

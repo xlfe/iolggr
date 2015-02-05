@@ -21,6 +21,7 @@ class LogHandler(webapp2.RequestHandler):
 
         #populate params with all stats received from device
         params['AP-mode'] = self.request.headers['X-Mode']
+        params['name'] = self.request.headers['X-Name']
 
         stats = self.request.headers['X-Stats'].split(',')
         for k,v in enumerate(['authmode','rssi','bssid','channel']):
@@ -31,8 +32,7 @@ class LogHandler(webapp2.RequestHandler):
             k,v = param.split('=')
             params[k]= v
 
-        bssid = None if 'AP-bssid' not in params else params['AP-bssid']
-
+        # bssid = None if 'AP-bssid' not in params else params['AP-bssid']
 
         #check for exceptions, log them if they exist
         c_att = int(params['c_att'])
@@ -41,18 +41,21 @@ class LogHandler(webapp2.RequestHandler):
         assert c_att < 60 and w_att < 60
 
         if c_att > 1:
-            iot_exception(mac=mac,bssid=bssid,exception='CONNECTION',params=params).put()
+            iot_exception(mac=mac, exception='CONNECTION',params=params).put()
 
         if w_att > 1:
-            iot_exception(mac=mac,bssid=bssid,exception='WIFI',params=params).put()
+            iot_exception(mac=mac, exception='WIFI',params=params).put()
 
         #save the event
-        i=iot_event(mac=mac, bssid=bssid, params=iot_event.mk_params(params))
-        i.remote_addr = self.request.remote_addr
+        i=iot_event(mac=mac,
+                    name=params['name'],
+                    remote_addr = self.request.remote_addr,
+                    params=iot_event.mk_params(params)
+        )
         i.put()
 
         #show the log
-        log = "MAC = {}\n".format(mac)
+        log = "MAC = {}\nNAME = {}\n".format(mac,params['name'])
         for k,v in i.params.iteritems():
             log += "{} = {}\n".format(k,v)
 

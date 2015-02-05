@@ -6,6 +6,9 @@ var Router = Ember.Router.extend({
 });
 
 Router.map(function() {
+    this.resource('charts'),
+    this.resource('chart', {path: '/chart/:id'}),
+    this.resource('devices'),
     this.resource('device', {path: '/device/:id'});
 });
 

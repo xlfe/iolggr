@@ -104,8 +104,7 @@ class NDBEncoder(json.JSONEncoder):
         else:
             return super(NDBEncoder,self).default(self, obj)
 
-
-class device_handler(webapp2.RequestHandler):
+class json_response(webapp2.RequestHandler):
 
     def get_response(self, status, content):
         """Returns an HTTP status message with JSON-encoded content (and appropriate HTTP response headers)"""
@@ -124,6 +123,31 @@ class device_handler(webapp2.RequestHandler):
 
         return response
 
+
+
+class ip_handler(json_response):
+
+    def get(self):
+        my_remote_addr = self.request.remote_addr
+
+        recent = iot_event.query(projection=['mac','name'], distinct=True).filter(iot_event.remote_addr == my_remote_addr).fetch(1000)
+        logging.info('{} results fetched from projection query on iot_event'.format(len(recent)))
+
+        older = iot_week.query(projection=['mac','name'], distinct=True).filter(iot_week.remote_addrs == my_remote_addr).fetch(1000)
+        logging.info('{} older results fetched from projection query on iot_week'.format(len(older)))
+
+        macs = {}
+        for r in recent + older:
+            macs[r.mac]=r.name
+
+        return self.get_response(200,{
+            'iplist': {
+                'id': 'me',
+                'results': macs
+            }
+        })
+
+class device_handler(json_response):
 
     def get(self,dev_id):
 
@@ -187,5 +211,6 @@ class device_handler(webapp2.RequestHandler):
 
 
 api = webapp2.WSGIApplication([
+    ('/api/iplists/me', ip_handler),
     ('/api/devices/([^/]+)', device_handler),
     ], debug=True)

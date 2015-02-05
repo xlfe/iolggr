@@ -14,3 +14,15 @@ indexes:
   properties:
   - name: mac
   - name: timestamp
+
+- kind: iot_event
+  properties:
+  - name: remote_addr
+  - name: mac
+  - name: name
+
+- kind: iot_week
+  properties:
+  - name: remote_addrs
+  - name: mac
+  - name: name

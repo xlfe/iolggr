@@ -1,0 +1,14 @@
+<h3>
+    Devices
+</h3>
+
+<p>
+    This page shows all devices found from your IP address or that you have viewed in this session
+</p>
+
+
+{{#each dev in model}}
+    {{#link-to 'device' dev.id}}
+       {{dev.name}}
+    {{/link-to}}
+{{/each}}
