@@ -14,6 +14,16 @@ class RollupHandler(webapp2.RequestHandler):
         deferred.defer(rollup_events,_queue='rollup')
 
 class LogHandler(webapp2.RequestHandler):
+
+    #define the params that are stored
+    _PARAMS = {
+        'temp':     lambda p: int(p['temp']),
+        'pressure': lambda p: int(p['pressure']),
+        'rssi':     lambda p: int(p['AP-rssi']),
+        'w_delay':  lambda p: int(p['w_delay']),
+        'delay':    lambda p: int(p['delay']) - int(p['w_delay'])
+    }
+
     def post(self):
 
         params = {}
@@ -46,17 +56,27 @@ class LogHandler(webapp2.RequestHandler):
         if w_att > 1:
             iot_exception(mac=mac, exception='WIFI',params=params).put()
 
+
+        _params = {}
+
+        for k,v in self._PARAMS.iteritems():
+            try:
+                _params[k] = v(params)
+            except TypeError:
+                _params[k] = params[v]
+
         #save the event
         i=iot_event(mac=mac,
                     name=params['name'],
                     remote_addr = self.request.remote_addr,
-                    params=iot_event.mk_params(params)
+                    params=_params
         )
         i.put()
 
+
         #show the log
-        log = "MAC = {}\nNAME = {}\n".format(mac,params['name'])
-        for k,v in i.params.iteritems():
+        log = "MAC = {}\nNAME = {}\nREMOTE_ADDR = {}\n\n--\n".format(mac,params['name'],self.request.remote_addr)
+        for k,v in _params.iteritems():
             log += "{} = {}\n".format(k,v)
 
         logging.info(log)

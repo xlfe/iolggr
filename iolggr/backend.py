@@ -2,15 +2,16 @@
 
 
 
-
-
+#
+#
 import webapp2
 import logging
 import json
 from json.encoder import INFINITY,encode_basestring,encode_basestring_ascii,c_make_encoder,_make_iterencode
 from google.appengine.ext import ndb
-from models import iot_event,iot_week
+from models import iot_event,iot_week,format_timestamp
 from datetime import date,datetime,time,timedelta
+
 
 class NDBEncoder(json.JSONEncoder):
     """JSON encoding for NDB models and properties"""
@@ -147,70 +148,121 @@ class ip_handler(json_response):
             }
         })
 
+class device(object):
+
+    def __init__(self,dev_id):
+        self.dev_id = dev_id
+        if dev_id =='9be4c11340c8': self.dev_id = '1340c89be4c1'
+
+        if iot_event.query(iot_event.mac == dev_id).fetch(1,keys_only=True) is None:
+            if iot_week.query(iot_week.mac == dev_id).fetch(1,keys_only=True) is None:
+                raise AttributeError('No device with MAC {} found'.format(dev_id))
+
+    def week(self,dt):
+        _week = iot_week.dt_to_week(dt)
+        return iot_week.query(iot_week.mac == self.dev_id).filter(iot_week.start == _week).get()
+
+    @property
+    def name(self):
+        recent = iot_event.query(projection=['name'], distinct=True).filter(iot_event.mac == self.dev_id).get()
+        try:
+            return recent.name
+        except AttributeError:
+            older = iot_week.query(projection=['name'], distinct=True).filter(iot_week.mac == self.dev_id).get()
+            return older.name
+
+    def most_recent_observation(self):
+        """
+            Get the most recent observation for the device
+        """
+        e = iot_event.query(iot_event.mac == self.dev_id).order(-iot_event.timestamp).get()
+
+        try:
+            return {
+                format_timestamp(e.timestamp):self.clean_observation(e.params)
+            }
+
+        except AttributeError:
+            w = iot_week.query(iot_week.mac == self.dev_id).order(-iot_week.end).get()
+
+            assert w is not None
+            assert len(w.data) > 0
+
+            latest = sorted(w.data)[-1]
+            return {
+                latest:self.clean_observation(w.data[latest])
+            }
+
+
+    # def get(self,dev_id):
+    #     try:
+    #         results = week.data
+    #         start = week.updated
+    #     except AttributeError:
+    #         results = {}
+    #         start = now - timedelta(hours=24)
+    #
+    #     last_week = week.prev()
+    #     try:
+    #         results.update(last_week.data)
+    #     except AttributeError:
+    #         pass
+    #
+    #     for a in additional_results:
+    #         dt = a.timestamp.replace(microsecond=0).isoformat()
+    #         results[dt]= a.params
+
+    @staticmethod
+    def clean_observation(result):
+        return {k:result[k] for k in ['temp','pressure']}
+
+
 class device_handler(json_response):
-
     def get(self,dev_id):
+        """Get 1 week worth of data plus most recent.
 
-        if dev_id =='9be4c11340c8':
-            dev_id = '1340c89be4c1'
+        rel: relative to utc.now() - ie 0 is now, -1 is last week, etc
+        mid - time date in UTC for the middle of the week you want
+        nothing - get latest result only
 
-        now = datetime.now()
-
-        week = iot_week.query() \
-            .filter(iot_week.mac == dev_id,
-                    iot_week.start == iot_week.dt_to_week(iot_week.dt_to_week(now))).get()
-
-
-        last_week = iot_week.query() \
-            .filter(iot_week.mac == dev_id,
-                    iot_week.start == iot_week.dt_to_week(iot_week.dt_to_week(now + timedelta(days=-7)))).get()
-
+        """
         try:
-            results = week.data
-            start = week.updated
+            dev = device(dev_id=dev_id)
         except AttributeError:
-            results = {}
-            start = now - timedelta(hours=24)
-
-        try:
-            results.update(last_week.data)
-        except AttributeError:
-            pass
-
-        additional_results = iot_event.query()\
-            .filter(iot_event.mac == dev_id,
-                    iot_event.timestamp >= start)\
-            .fetch(1000)
-
-        if len(additional_results) == 0 and week is None:
             return self.get_response(404,{})
 
-        for a in additional_results:
-            dt = a.timestamp.replace(microsecond=0).isoformat()
-            results[dt]= a.params
+        r = dev.most_recent_observation()
 
-
-        included = ['temp','pressure']
-        for dt in results:
-            to_del =[]
-            for k in results[dt]:
-                if k not in included:
-                    to_del.append(k)
-            for k in to_del:
-                del results[dt][k]
-
-        device = {
+        return self.get_response(200, {
             'device': {
-                'id':dev_id,
-                'results': results
+                'id': dev_id,
+                'name':dev.name,
+                'obs': r
             }
-        }
-
-        return self.get_response(200,device)
-
+        })
 
 
 api = webapp2.WSGIApplication([
     ('/api/iplists/me', ip_handler),
     ('/api/devices/([^/]+)', device_handler),
     ], debug=True)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

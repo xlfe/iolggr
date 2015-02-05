@@ -6,6 +6,8 @@ import datetime
 import json
 
 
+format_timestamp = lambda x:x.replace(microsecond=0).isoformat()
+
 class iot_week(ndb.Model):
     WEEK_START_DAY = 1 #Monday
     """1 week worth of data"""
@@ -32,6 +34,14 @@ class iot_week(ndb.Model):
             o = cls(mac=mac, start=week)
 
         return o
+
+    def prev(self):
+        _week = self.start + datetime.timedelta(days=-7)
+        return iot_week.query(iot_week.mac == self.mac).filter(iot_week.start == _week)
+
+    def next(self):
+        _week = self.start + datetime.timedelta(days=7)
+        return iot_week.query(iot_week.mac == self.mac).filter(iot_week.start == _week)
 
 class iot_exception(ndb.Model):
 
@@ -68,45 +78,20 @@ class iot_event(ndb.Model):
             w_delay = 6793
         """
 
-    _PARAMS = {
-        'temp':     lambda p: int(p['temp']),
-        'pressure': lambda p: int(p['pressure']),
-        'rssi':     lambda p: int(p['AP-rssi']),
-        'w_delay':  lambda p: int(p['w_delay']),
-        'delay':    lambda p: int(p['delay']) - int(p['w_delay'])
-    }
-
     timestamp = ndb.DateTimeProperty(auto_now_add=True)
     mac = ndb.StringProperty()
     remote_addr = ndb.StringProperty()
     name = ndb.StringProperty()
     params = ndb.JsonProperty(indexed=False)
 
+def rollup_events(batch_size=1000):
+    """Roll-up individual events into a single iot_week object"""
 
-    @classmethod
-    def mk_params(cls,params):
-
-        p = {}
-
-        for k,v in cls._PARAMS.iteritems():
-            try:
-                p[k] = v(params)
-            except TypeError:
-                p[k] = params[v]
-
-        return p
-
-
-
-
-def rollup_events():
-
-    events = iot_event.query().order(iot_event.mac, -iot_event.timestamp).fetch(1000)
+    events = iot_event.query().order(iot_event.mac, -iot_event.timestamp).fetch(batch_size)
 
     if len(events) == 0:
         return
     elif len(events) == 1000:
-        # More events waiting then queue them up
         deferred.defer(rollup_events,_queue='rollup')
 
     mac_weeks = collections.defaultdict(lambda: collections.defaultdict(list))
@@ -119,24 +104,14 @@ def rollup_events():
         for week,events in weeks.iteritems():
 
             rollup = iot_week.get_or_create(mac=mac,week=week)
-            sz = 0
 
             for e in events:
 
-                d = {}
-
-                try:
-                    for k in iot_event._PARAMS:
-                        d[k] = e.params[k]
-                except KeyError:
-                    d = iot_event.mk_params(e.params)
-
-                dt = e.timestamp.replace(microsecond=0).isoformat()
-                rollup.data[dt] = d
+                rollup.data[format_timestamp(e.timestamp)] = e.params
+                rollup.name = e.name
 
                 if e.remote_addr not in rollup.remote_addrs:
                     rollup.remote_addrs.append(e.remote_addr)
-                rollup.name = e.name
 
             logging.info('{} events for {} added into rollup({}) with {} total events'.format(len(events),mac,week,len(rollup.data)))
             rollup.put()
