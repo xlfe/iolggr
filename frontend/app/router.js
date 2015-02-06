@@ -6,10 +6,12 @@ var Router = Ember.Router.extend({
 });
 
 Router.map(function() {
-    this.resource('charts'),
-    this.resource('chart', {path: '/chart/:id'}),
-    this.resource('devices'),
-    this.resource('device', {path: '/device/:id'});
+    this.resource('charts',function() {
+        this.resource('chart')
+    }),
+    this.resource('devices', function() {
+        this.resource('device',{path: '/:id'})
+    });
 });
 
 export default Router;

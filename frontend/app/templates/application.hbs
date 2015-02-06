@@ -19,10 +19,18 @@
 
             <ul class="nav navbar-nav navbar-left">
 
+
                 {{#link-to "devices" tagName="li" class="menu-link"}}
                     <a {{bind-attr href="view.href"}}>
                         <i class="fa fa-lg fa-search"></i>
                         Devices
+                    </a>
+                {{/link-to}}
+
+                {{#link-to "charts" tagName="li" class="menu-link"}}
+                    <a {{bind-attr href="view.href"}}>
+                        <i class="fa fa-lg fa-search"></i>
+                        Charts
                     </a>
                 {{/link-to}}
 

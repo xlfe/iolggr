@@ -72,25 +72,39 @@ export default Ember.Component.extend({
         return moment(d).fromNow();
     },
     didInsertElement: function () {
-        var _data = this.get('data'),
-            data = [],
-            _this = this,
-            bisectDate = d3.bisector(function (a) { return a.dt;}).left,
-            d = d3.select(this.$('#chart')[0]);
 
-        var margin = this.get('margins'),
+        var d = d3.select(this.$('#chart')[0]),
+            _this = this,
+            margin = this.get('margins'),
+            bisectDate = d3.bisector(function (a) {
+                return a.dt;
+            }).left,
             width = this.get('width') - margin.left - margin.right,
             brush_height = this.get('brush_height'),
             height = this.get('height') - margin.top - margin.bottom;
 
-        d3.entries(_data).forEach(function(_){
-            _.value.dt = moment.utc(_.key).tz(tz).toDate();
-            data.pushObject(_.value);
-        });
+        var svg = d.append("svg")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+            .append("g")
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
-        data = data.sort(function(a,b){
-            return a.dt - b.dt;
-        });
+        svg.append("g")
+            .attr("class", "x axis")
+            .append("line")
+            .attr("y1", -1)
+            .attr("y2", -1)
+            .attr("x1", 0)
+            .attr("x2", width);
+
+        svg.append("g")
+            .attr("class", "y axis")
+            .append("line")
+            .attr("y1", -1)
+            .attr("y2", height)
+            .attr("x1", width)
+            .attr("x2", width);
+
 
         var x = d3.time.scale()
             .range([0, width]);
@@ -109,61 +123,14 @@ export default Ember.Component.extend({
             .ticks(4)
             .tickFormat(_this._get("yFormat"));
 
-        var line = d3.svg.line()
-            .x(function (d) {
-                return x(d.dt);
-            })
-            .y(function (d) {
-                return y(_this._get('yAccessor')(d));
-            });
-
-        var svg = d.append("svg")
-            .attr("width", width + margin.left + margin.right)
-            .attr("height", height + margin.top + margin.bottom)
-            .append("g")
-            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-
-
-        //x.domain(d3.extent(data, function (d) {
-        //    return d.dt;
-        //}));
-
-        x.domain([moment().subtract(48,'hours').toDate(),moment().toDate()])
-        .clamp(true);
-
-        y.domain(d3.extent(data, function (d) {
-            return _this._get('yAccessor')(d);
-        }));
-
         svg.append("g")
             .attr("class", "x axis")
             .attr("transform", "translate(0," + height + ")")
             .call(xAxis);
 
         svg.append("g")
-            .attr("class", "x axis")
-            .append("line")
-            .attr("y1", -1)
-            .attr("y2", -1)
-            .attr("x1", 0)
-            .attr("x2",width);
-
-        svg.append("g")
-            .attr("class", "y axis")
-            .append("line")
-            .attr("y1", -1)
-            .attr("y2", height)
-            .attr("x1", width)
-            .attr("x2",width);
-
-        svg.append("g")
             .attr("class", "y axis")
             .call(yAxis);
-
-        svg.append("path")
-            .datum(data)
-            .attr("class", "line")
-            .attr("d", line);
 
         var focus = svg.append("g")
             .style("display", "none")
@@ -183,15 +150,23 @@ export default Ember.Component.extend({
             .attr("x1", width)
             .attr("x2", width);
 
+
+        this.set('x', x);
+        this.set('y', y);
+        this.set('height',height);
+        this.set('xAxis',xAxis);
+        this.set('yAxis',yAxis);
+        this.set('svg', svg);
+
         svg.append("text")
             .attr("class", "value label-text")
-            .attr('text-anchor','end')
-            .attr("transform",'translate(' + width + ',' + -2 + ')');
+            .attr('text-anchor', 'end')
+            .attr("transform", 'translate(' + width + ',' + -2 + ')');
 
         svg.append("text")
             .attr("class", "dt label-text")
-            .attr('text-anchor','start')
-            .attr("transform",'translate(' + 0 + ',' + -2 + ')');
+            .attr('text-anchor', 'start')
+            .attr("transform", 'translate(' + 0 + ',' + -2 + ')');
 
         svg.append("rect")
             .attr("width", width)
@@ -200,20 +175,20 @@ export default Ember.Component.extend({
             .style("pointer-events", "all")
             .on("mouseover", function () {
                 focus.style("display", null);
-                svg.selectAll('.label-text').style('display',null);
+                svg.selectAll('.label-text').style('display', null);
             })
             .on("mouseout", function () {
                 focus.style("display", "none");
-                svg.selectAll('.label-text').style('display','none');
+                svg.selectAll('.label-text').style('display', 'none');
             })
             .on("mousemove", mousemove);
 
         function mousemove() {
             var x0 = x.invert(d3.mouse(this)[0]),
-                i = bisectDate(data, x0,1),
+                i = bisectDate(data, x0, 1),
                 d0 = data[i - 1],
                 d1 = data[i],
-                  d = x0 - d0.dt > d1.dt - x0 ? d1 : d0;
+                d = x0 - d0.dt > d1.dt - x0 ? d1 : d0;
 
             focus.select("circle.pin")
                 .attr("transform",
@@ -239,7 +214,90 @@ export default Ember.Component.extend({
                 .attr("x2", width + width);
         }
 
-    }
+        this.drawData();
+        //this.updateChart();
+
+    },
+    drawData: function () {
+
+        var charts = this.get('charts'),
+            _this = this,
+            svg = this.get('svg'),
+            x_ext = [],
+            y_ext = [],
+            series = [],
+            height = this.get('height'),
+            xAxis = this.get('xAxis'),
+            yAxis = this.get('yAxis'),
+            x = this.get('x'),
+            y = this.get('y');
+
+        var line = d3.svg.line()
+            .x(function (d) {
+                return x(d.dt);
+            })
+            .y(function (d) {
+                return y(_this._get('yAccessor')(d));
+            });
+
+
+        charts.forEach(function (chart) {
+            var
+                _data = chart.get('obs'),
+                data = [];
+
+            d3.entries(_data).forEach(function (_) {
+                _.value.dt = moment.utc(_.key).tz(tz).toDate();
+                data.pushObject(_.value);
+            });
+
+            data = data.sort(function (a, b) {
+                return a.dt - b.dt;
+            });
+
+            d3.extent(data, function (d) {
+                return d.dt;
+            })
+                .forEach(function (e) {
+                    x_ext.pushObject(e);
+                });
+
+            d3.extent(data, function (d) {
+                return _this._get('yAccessor')(d);
+            })
+                .forEach(function (e) {
+                    y_ext.pushObject(e);
+                });
+
+            series.pushObject(data);
+        });
+
+        x.domain(d3.extent(x_ext));
+        y.domain(d3.extent(y_ext));
+
+        series.forEach(function (s) {
+            svg.append("path")
+                .datum(s)
+                .attr("class", "line")
+                .attr("d", line);
+
+
+        });
+
+        d3.selectAll('.x.axis').selectAll('.tick').remove();
+        svg.append("g")
+            .attr("transform", "translate(0," + height + ")")
+            .attr("class", "x axis")
+            .call(xAxis);
+
+        d3.selectAll('.y.axis').selectAll('.tick').remove();
+        svg.append("g")
+            .attr("class", "y axis")
+            .call(yAxis);
+
+
+
+    }.observes('charts', 'charts.[]')
 
 
 });

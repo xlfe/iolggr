@@ -259,7 +259,7 @@ class device(object):
         return {k:result[k] for k in ['temp','pressure']}
 
 
-class device_handler(json_response):
+class device_single(json_response):
     def get(self,dev_id):
         """Get 1 week worth of data plus most recent.
 
@@ -273,6 +273,26 @@ class device_handler(json_response):
         except AttributeError:
             return self.get_response(404,{})
 
+        name,result = dev.most_recent_observation()
+
+        return self.get_response(200, {
+            'device': {
+                'id': dev_id,
+                'name':name,
+                'obs': result
+            }
+        })
+
+
+class device_query(json_response):
+
+    def get(self):
+        dev_id = self.request.get('id',None)
+
+        try:
+            dev = device(dev_id=dev_id)
+        except AttributeError:
+            return self.get_response(404,{})
 
         rel = self.request.get('rel',None)
 
@@ -297,50 +317,50 @@ class device_handler(json_response):
             if start is not None:
                 start = to_dt(start)
 
-        if start is None:
-            name,result = dev.most_recent_observation()
-        else:
 
-            assert start < datetime.now()
+        assert start < datetime.now()
 
-            prefetch = end > datetime.now() - timedelta(hours=3)
-            if prefetch:
-                dev.prefetch_recent()
-                logging.info('Pre-fetching most recent observations')
+        prefetch = end > datetime.now() - timedelta(hours=3)
+        if prefetch:
+            dev.prefetch_recent()
+            logging.info('Pre-fetching most recent observations')
 
-            weeks = dev.weeks(start=start,end=end)
-            result = {}
+        weeks = dev.weeks(start=start,end=end)
+        result = {}
 
-            if len(weeks) == 0 and prefetch is False:
-                #No historical data, recent data not requested...
-                return self.get_response(204, {})
+        if len(weeks) == 0 and prefetch is False:
+            #No historical data, recent data not requested...
+            return self.get_response(204, {})
 
-            if len(weeks) > 0:
-                name = weeks[-1].name
+        if len(weeks) > 0:
+            name = weeks[-1].name
 
-                for week in weeks:
-                    result.update(week.data)
+            for week in weeks:
+                result.update(week.data)
 
-            if prefetch:
-                recent = dev.resolve_recent()
-                for r in recent:
-                    result[format_timestamp(r.timestamp)] = device.clean_observation(r.params)
-                if len(recent)>0:
-                    name = recent[-1].name
-                logging.info('{} recent results appended'.format(len(recent)))
+        if prefetch:
+            recent = dev.resolve_recent()
+            for r in recent:
+                result[format_timestamp(r.timestamp)] = device.clean_observation(r.params)
+            if len(recent)>0:
+                name = recent[-1].name
+            logging.info('{} recent results appended'.format(len(recent)))
 
-        return self.get_response(200, {
-            'device': {
-                'id': dev_id,
-                'name':name,
-                'obs': result
-            }
+        return self.get_response(200,{
+            "Device": [
+                {
+                    'id': dev_id,
+                    'name':name,
+                    'obs': result
+                }
+            ]
         })
 
 
 api = webapp2.WSGIApplication([
     ('/api/iplists/me', ip_handler),
-    ('/api/devices/([^/]+)', device_handler),
+    ('/api/devices/([^/]+)', device_single),
+    ('/api/devices', device_query),
     ], debug=True)
 
 

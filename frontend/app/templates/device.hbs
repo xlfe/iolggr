@@ -1,7 +1,19 @@
 <h3> {{name}} </h3>
 
+<h5>Identifier: {{id}}</h5>
 
-<p title="When did the last observation get logged with the server?">Last observation was {{from-now last_seen}}</p>
+
+<p title="When did the last observation get logged with the server?">
+    Last observation:
+    {{local-date last_seen}}
+    ({{from-now last_seen}})
+</p>
+
+<p>
+    {{#link-to 'chart' (query-params devices=id)}}
+        View chart
+    {{/link-to}}
+</p>
 
 <p>
     Temperature was {{convert-temp last_obs.temp}}
@@ -9,7 +21,6 @@
 <p>
     Pressure was {{convert-pressure last_obs.pressure}}
 </p>
-<!--d3-chart data=results chart-type="temp" name="Temperature"}}-->
 
 <!--d3-chart data=results chart-type="pressure" name="Atmospheric pressure"}}-->
 
