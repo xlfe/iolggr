@@ -3,9 +3,6 @@ import Ember from 'ember';
 /* global d3 */
 /* global moment */
 
-var tz = "Australia/Sydney",
-    datetime_local = 'dddd, MMMM Do YYYY, h:mm:ss a';
-
 var formatDate = function (d) {
     return moment(d).format("ddd, hh:mmA");
 };
@@ -243,17 +240,11 @@ export default Ember.Component.extend({
 
         charts.forEach(function (chart) {
             var
-                _data = chart.get('obs'),
-                data = [];
+                data = chart.get('_obs');
 
-            d3.entries(_data).forEach(function (_) {
-                _.value.dt = moment.utc(_.key).tz(tz).toDate();
-                data.pushObject(_.value);
-            });
-
-            data = data.sort(function (a, b) {
-                return a.dt - b.dt;
-            });
+            //data = data.sort(function (a, b) {
+            //    return a.dt - b.dt;
+            //});
 
             d3.extent(data, function (d) {
                 return d.dt;
@@ -271,6 +262,8 @@ export default Ember.Component.extend({
 
             series.pushObject(data);
         });
+
+        console.log(x_ext,y_ext);
 
         x.domain(d3.extent(x_ext));
         y.domain(d3.extent(y_ext));

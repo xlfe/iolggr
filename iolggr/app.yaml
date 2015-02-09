@@ -12,7 +12,7 @@ handlers:
 - url: /log
   script: main.app
 
-- url: /admin/rollup
+- url: /admin/.*
   script: main.app
   login: admin
 
@@ -23,7 +23,11 @@ handlers:
   static_files: static/index.html
   upload: static/index.html
 
-- url: /(device)/(.*)
+- url: /(devices|charts)
+  static_files: static/index.html
+  upload: static/index.html
+
+- url: /(devices|charts)/(.*)
   static_files: static/index.html
   upload: static/index.html
 

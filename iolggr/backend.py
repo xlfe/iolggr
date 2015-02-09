@@ -153,59 +153,32 @@ class device(object):
 
     def __init__(self,dev_id):
         self.dev_id = dev_id
-        if dev_id =='9be4c11340c8': self.dev_id = '1340c89be4c1'
 
         if iot_event.query(iot_event.mac == dev_id).fetch(1,keys_only=True) is None:
             if iot_week.query(iot_week.mac == dev_id).fetch(1,keys_only=True) is None:
                 raise AttributeError('No device with MAC {} found'.format(dev_id))
 
-    def _week(self,dt):
-        _dt = iot_week.dt_to_week(dt)
+    def week(self,dt):
+        _dt = iot_week.dt_to_period(dt)
         return iot_week.query(iot_week.mac == self.dev_id).filter(iot_week.start == _dt).get()
 
 
-    def _weeks(self,start,end):
+    def weeks(self,start,end):
 
         assert end > start
 
-        _start = iot_week.dt_to_week(start)
+        _start = iot_week.dt_to_period(start)
         weeks = []
 
         while _start < end:
             weeks.append(_start)
-            _start += timedelta(days=7)
+            _start += iot_week.period_length
 
         weeks = iot_week.query(iot_week.mac == self.dev_id).filter(iot_week.start.IN(weeks)).order(iot_week.start).fetch(10)
         logging.info('{} weeks retrieved with start {} and end {}'.format(len(weeks),start.isoformat(),end.isoformat()))
         for week in weeks:
             logging.info('{} - {} with {} obs'.format(week.start,week.end,len(week.data)))
 
-        #Remove observations outside the start/end pair...
-        if False:
-            o_count =0
-            for week in weeks:
-                outliers = []
-                for k in week.data:
-                    _k = to_dt(k)
-                    if _k > end or _k < start:
-                        outliers.append(k)
-                for o in outliers:
-                    o_count+=1
-                    del week.data[o]
-
-            logging.info('{} outliers removed'.format(o_count))
-        return weeks
-
-    def week(self,dt):
-        week = self._week(dt)
-        if week is not None:
-            device.clean_week(self.week(dt))
-        return week
-
-    def weeks(self,start,end):
-        weeks = self._weeks(start=start,end=end)
-        for week in weeks:
-            device.clean_week(week)
         return weeks
 
     @property
@@ -218,7 +191,7 @@ class device(object):
             return older.name
 
     def prefetch_recent(self):
-        setattr(self,'__recent',iot_event.query(iot_event.mac==self.dev_id).fetch_async(1000))
+        setattr(self,'__recent',iot_event.query(iot_event.mac==self.dev_id).order(iot_event.timestamp).fetch_async(1000))
 
     def resolve_recent(self):
         __recent = getattr(self,'__recent',None)
@@ -233,31 +206,31 @@ class device(object):
         """
         e = iot_event.query(iot_event.mac == self.dev_id).order(-iot_event.timestamp).get()
 
-        try:
-            return e.name,{
-                format_timestamp(e.timestamp):self.clean_observation(e.params)
-            }
-
-        except AttributeError:
-            w = iot_week.query(iot_week.mac == self.dev_id).order(-iot_week.end).get()
+        if e is None:
+            w = iot_week.query(iot_week.mac == self.dev_id).order(-iot_week.start).get()
 
             assert w is not None
             assert len(w.data) > 0
 
-            latest = sorted(w.data)[-1]
-            return w.name,{
-                latest:self.clean_observation(w.data[latest])
-            }
+            obs = list(w.data[-1])
+            obs[0] = 0
+            name = w.name
+            start = w.d_end
+            key = w.stored_params
+            data = tuple(obs)
+        else:
+            name = e.name
+            start = format_timestamp(e.timestamp)
+            key = iot_week.stored_params
+            data = [0]+[int(e.params[k]) for k in iot_week.stored_params.split(',')]
 
-    @staticmethod
-    def clean_week(week):
-        for k in week.data:
-            week.data[k] = device.clean_observation(week.data[k])
-
-    @staticmethod
-    def clean_observation(result):
-        return {k:result[k] for k in ['temp','pressure']}
-
+        return {
+            'id':self.dev_id,
+            'name':name,
+            'start': start,
+            'keys': key,
+            'obs':[data]
+        }
 
 class device_single(json_response):
     def get(self,dev_id):
@@ -273,16 +246,8 @@ class device_single(json_response):
         except AttributeError:
             return self.get_response(404,{})
 
-        name,result = dev.most_recent_observation()
-
-        return self.get_response(200, {
-            'device': {
-                'id': dev_id,
-                'name':name,
-                'obs': result
-            }
-        })
-
+        result = dev.most_recent_observation()
+        return self.get_response(200, { 'device': result })
 
 class device_query(json_response):
 
@@ -302,8 +267,8 @@ class device_query(json_response):
             except ValueError:
                 return self.get_response(500, {})
 
-            start = datetime.now() - timedelta(days=(rel+1)*7)
-            end   = datetime.now() - timedelta(days=(rel+0)*7)
+            start = datetime.now() - iot_week.period_length*(rel+1)
+            end   = datetime.now() - iot_week.period_length*(rel+0)
 
         else:
             start = self.request.get('start', None)
@@ -326,35 +291,80 @@ class device_query(json_response):
             logging.info('Pre-fetching most recent observations')
 
         weeks = dev.weeks(start=start,end=end)
-        result = {}
+        result = []
 
         if len(weeks) == 0 and prefetch is False:
             #No historical data, recent data not requested...
             return self.get_response(204, {})
 
+        start_dt = None
+        end_dt = None
         if len(weeks) > 0:
-            name = weeks[-1].name
 
-            for week in weeks:
-                result.update(week.data)
+            start_dt = weeks[0].d_start
+
+            for n,week in enumerate(weeks):
+
+                if n > 0:
+                    diff = int((weeks[n].d_start - weeks[n-1].d_end).total_seconds())
+                    zero = list(week.data[0])
+                    zero[0] += diff
+                    week.data[0] = tuple(zero)
+
+                result.extend(week.data)
+                end_dt = week.d_end
+                name = week.name
 
         if prefetch:
             recent = dev.resolve_recent()
-            for r in recent:
-                result[format_timestamp(r.timestamp)] = device.clean_observation(r.params)
-            if len(recent)>0:
+
+            if len(recent) > 0:
+
+                if end_dt is None:
+                    start_dt = recent[0].timestamp
+                    end_dt = start_dt
+
+                data = []
+
+                end_dt = iot_week._append(
+                    _start=start_dt,
+                    _end=None,
+                    _d_end=end_dt,
+                    events=recent,
+                    data=data,
+                    offsets=None,
+                    dt_to_chunk=lambda x:0,
+                    stored_params=iot_week.stored_params,
+                    enforce_end=False
+                )
+
                 name = recent[-1].name
-            logging.info('{} recent results appended'.format(len(recent)))
+
+                result.extend(data)
+                logging.info('{} recent results appended'.format(len(recent)))
+
+
+        s = start_dt
+        for d in result:
+            s += timedelta(seconds=d[0])
+
+        logging.info('Data period appears to be {} -> {}'.format(start_dt,s))
+        logging.info('End date is {}'.format(end_dt))
+        assert end_dt.replace(microsecond=0) == s.replace(microsecond=0)
 
         return self.get_response(200,{
             "Device": [
                 {
                     'id': dev_id,
-                    'name':name,
+                    'name': name,
+                    'start':format_timestamp(start_dt),
+                    'keys':iot_week.stored_params,
                     'obs': result
                 }
             ]
         })
+
+
 
 
 api = webapp2.WSGIApplication([

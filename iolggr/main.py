@@ -5,12 +5,11 @@ import json
 import logging
 
 from google.appengine.ext import deferred
-from models import iot_event,iot_exception,rollup_events
+from models import iot_event,iot_exception,rollup_events,iot_week
 
 class RollupHandler(webapp2.RequestHandler):
     def get(self):
         """Rollup logs into weeks"""
-
         deferred.defer(rollup_events,_queue='rollup')
 
 class LogHandler(webapp2.RequestHandler):
