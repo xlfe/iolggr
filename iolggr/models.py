@@ -135,6 +135,7 @@ class iot_event_roll(ndb.Model):
             diff_seconds = int(diff.total_seconds())
 
             if micro.seconds > 0:
+                logging.info('M {}'.format(micro.seconds))
                 diff_seconds += micro.seconds
                 micro -= timedelta(seconds=micro.seconds)
 
@@ -146,6 +147,7 @@ class iot_event_roll(ndb.Model):
                 offsets[this_chunk] = (len(data),format_timestamp(e.timestamp))
 
             d_end = e.timestamp
+            logging.info('Remain {}'.format(micro))
             data.append(o)
             all_seconds.append(diff_seconds)
 
