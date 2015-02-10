@@ -4,10 +4,9 @@ export default Em.ObjectController.extend({
     actions: {
 
     },
-    last_obs: function() {
+    latest_obs: function() {
         var obs = this.get('_obs');
 
-        console.log(obs);
         if (Em.isEmpty(obs)){
             return null;
         }

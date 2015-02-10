@@ -7,10 +7,10 @@ var Router = Ember.Router.extend({
 
 Router.map(function() {
     this.resource('charts',function() {
-        this.resource('chart')
+        this.resource('chart');
     }),
     this.resource('devices', function() {
-        this.resource('device',{path: '/:id'})
+        this.resource('device',{path: '/:id'});
     });
 });
 

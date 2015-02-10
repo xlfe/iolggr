@@ -1,10 +1,18 @@
 import DS from 'ember-data';
 import Em from 'ember';
+/* global moment */
 
 export default DS.Model.extend({
     name: DS.attr('string'),
     obs: DS.attr('list'),
     keys: DS.attr('splist'),
+    dev_link: function() {
+        var id = this.get('id');
+        return 'http://iolggr.appspot.com/devices/'+id;
+    }.property('id'),
+    label_class: function() {
+        return 'label-' + this.get('colour') + ' dev-'+this.get('id');
+    }.property('colour'),
     _obs: function () {
         var keys = this.get('keys'),
             obs = this.get('obs'),
@@ -22,10 +30,8 @@ export default DS.Model.extend({
 
                 _obs = _.slice(1),
                 obj = {
-                    dt: start.toDate()
+                    dt: start.clone().toDate()
                 };
-
-            console.log(start.toDate(),_[0]);
 
             for (var i = 0; i < _obs.length; i++) {
                 obj[keys[i]] = _obs[i];

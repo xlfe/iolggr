@@ -17,7 +17,6 @@ class iot_event_roll(ndb.Model):
     end = ndb.ComputedProperty(lambda x: x.start + x.period_length)
 
     #Actual data start and end dates
-    d_start = ndb.DateTimeProperty(required=True)
     d_end= ndb.DateTimeProperty(required=True)
 
     updated = ndb.DateTimeProperty(auto_now=True)
@@ -27,8 +26,14 @@ class iot_event_roll(ndb.Model):
     name = ndb.StringProperty()
 
 
-    data = ndb.JsonProperty(compressed=False, indexed=False, default=[])
-    offsets = ndb.JsonProperty(compressed=False, indexed=False, default={})
+    data = ndb.JsonProperty(compressed=False, indexed=False)
+    offsets = ndb.JsonProperty(compressed=False, indexed=False)
+
+    @property
+    def d_start(self):
+        if len(self.data) == 0:
+            return self.start
+        return self.start + timedelta(seconds=self.data[0][0])
 
     def slice(self, _from, _to):
 
@@ -85,78 +90,120 @@ class iot_event_roll(ndb.Model):
         raise NotImplementedError()
 
     @classmethod
-    def get_or_create(cls,mac,start):
-        o = cls.query().filter(cls.mac== mac, cls.start == start).get()
+    def gen_id(cls,mac,start):
+        return '{}#{}'.format(mac.lower(),format_timestamp(start))
+
+    @classmethod
+    def get(cls, mac, start):
+        assert start.microsecond == 0
+        return ndb.Key(cls,cls.gen_id(mac,start)).get()
+
+
+    @classmethod
+    def get_or_create(cls, mac, start):
+
+        o = cls.get(mac,start)
 
         if o is None:
-            o = cls(mac=mac, start=start)
+            o = cls(id=cls.gen_id(mac,start))
+            o.mac = mac
+            o.start = start
             o.d_end = start
-            o.d_start = start
+            o.data = []
+            o.offsets = {}
 
         return o
 
     def append(self,events):
+
+        #propogate the most-recent event name to the rollup name
+        if len(events)>0:
+            self.name = events[-1].name
+
+        #add all remote_addrs from the events to the rollup remote addrs
+        for e in events:
+            if e.remote_addr not in self.remote_addrs:
+                self.remote_addrs.append(e.remote_addr)
+
+        #rollup the actual events
         self.d_end = iot_event_roll._append(
             _start=self.start,
             _end=self.end,
             _d_end=self.d_end,
             events=events,
-            data=self.data,
+            _data=self.data,
             offsets=self.offsets,
             dt_to_chunk=self.dt_to_chunk,
             stored_params=self.stored_params
         )
 
-        if len(events)>0:
-            e = events[-1]
-            self.name = e.name
-            if e.remote_addr not in self.remote_addrs:
-                self.remote_addrs.append(e.remote_addr)
-
     @staticmethod
-    def _append(_start, _end,_d_end,events,data,offsets,dt_to_chunk,stored_params,enforce_end=True):
-        micro = timedelta()
-        all_seconds=[]
+    def _append(_start, _end, _d_end, events, _data, offsets, dt_to_chunk, stored_params):
+        """
+
+        :param _start:          Rollup period start
+        :param _end:            Rollup period end
+        :param _d_end:          Existing end point for this rollup
+        :param events:          List of events to rollup
+        :param _data:           Data list to rollup into
+        :param offsets:         Dictionary to store chunk offsets
+        :param dt_to_chunk:     Function that calculates the chunk
+        :param stored_params:   List indicating params to rollup from each event
+        :return:                New d_end for the rollup
+        """
+
+        #Should not have microseconds
+        assert _d_end.microsecond == 0
+
+        #dont overwrite the existing endpoint
         d_end = _d_end
+
+        #Store the newly rolled up events before adding them
+        data = []
 
         for e in events:
 
-            assert e.timestamp >= _start, '{} > {}'.format(e.timestamp, _start)
-            assert e.timestamp >= d_end, '{} > {}'.format(e.timestamp,d_end)
+            #Make sure each event actually belongs in this rollup
+            assert e.timestamp < _end
+            assert e.timestamp >= _start
 
-            if enforce_end:
-                assert e.timestamp < _end, '{} < {}'.format(e.timestamp,_end)
+            #Assert that we've been given the events in order
+            assert e.timestamp >= d_end
 
+            #We want precesion to be no greater than 1 second
+            ts = e.timestamp.replace(microsecond=0)
+
+            #Previous chunk is based on the previous data end point
             prev_chunk = dt_to_chunk(d_end)
-            diff = (e.timestamp - d_end)
 
-            micro += timedelta(microseconds=diff.microseconds)
+            #Seconds difference between previous pt and the new pt
+            diff = (ts - d_end).total_seconds()
 
-            diff_seconds = int(diff.total_seconds())
+            #Actual rollup data: diff_in_seconds, param_1, ...
+            o = [int(diff)] + [int(e.params[k]) for k in stored_params.split(',')]
 
-            if micro.seconds > 0:
-                logging.info('M {}'.format(micro.seconds))
-                diff_seconds += micro.seconds
-                micro -= timedelta(seconds=micro.seconds)
+            #Current chunk
+            this_chunk = dt_to_chunk(ts)
 
-            o = [diff_seconds] + [int(e.params[k]) for k in stored_params.split(',')]
-
-            this_chunk = dt_to_chunk(e.timestamp)
+            #If we've just moved into the next chunk, store the chunk boundary for later use
             if prev_chunk != this_chunk:
                 logging.info('CHUNK {} -> {} after {} obs'.format(prev_chunk,this_chunk,len(data)))
-                offsets[this_chunk] = (len(data),format_timestamp(e.timestamp))
 
-            d_end = e.timestamp
-            logging.info('Remain {}'.format(micro))
+                #chunk boundaries are (n_previous_observations, timestamp)
+                offsets[this_chunk] = (len(data),format_timestamp(ts))
+
+            #update the data end_point and add the rollup
+            d_end = ts
             data.append(o)
-            all_seconds.append(diff_seconds)
 
-        calc_seconds = int((d_end - _d_end).total_seconds())
-        summed_seconds = sum(all_seconds)
-        if calc_seconds != summed_seconds:
-            new_end = (_d_end + timedelta(seconds=summed_seconds))
-            raise FloatingPointError('New end date of {} does not match last obs {}'.format(new_end,d_end))
+        #assert that the actual difference between the previous end point and the new endpoint matches the number
+        #of seconds we've added
+        append_diff = int((d_end - _d_end).total_seconds())
+        all_seconds = sum(_[0] for _ in data)
+        assert append_diff == all_seconds
 
+        #add the new rollups to the actual rollup list and return the new data end point
+        _data.extend(data)
         return d_end
 
 
@@ -164,25 +211,25 @@ class iot_event_roll(ndb.Model):
 
 class iot_week(iot_event_roll):
 
-    #Test
-    period_length=timedelta(hours=6)
-    chunk_length=timedelta(hours=1)
+    #Test 6 hourly periods
+    # period_length=timedelta(hours=6)
+    # chunk_length=timedelta(hours=1)
 
     #Weekly
-    # period_length=timedelta(days=7)
-    # chunk_length=timedelta(days=1)
+    period_length=timedelta(days=7)
+    chunk_length=timedelta(days=1)
     stored_params = 'temp,pressure,rssi,w_delay,delay'
 
     @classmethod
     def dt_to_period(cls,dt):
-        # return dt.replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=dt.isoweekday() - 1)
-        h = dt.hour
-        return dt.replace(hour=h-h%6, minute=0, second=0, microsecond=0)
+        return dt.replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=dt.isoweekday() - 1)
+        # h = dt.hour
+        # return dt.replace(hour=h-h%6, minute=0, second=0, microsecond=0)
 
 
     def dt_to_chunk(self,dt):
-        return int((dt - self.start).total_seconds()/3600)
-        # return (dt - self.start).days
+        # return int((dt - self.start).total_seconds()/3600)
+        return (dt - self.start).days
 
 
 
@@ -230,30 +277,32 @@ class iot_event(ndb.Model):
 def rollup_events(batch_size=1000):
     """Roll-up individual events into a single iot_week object"""
 
-    events = iot_event.query().order(iot_event.mac, iot_event.timestamp).fetch(batch_size)
+    _events = iot_event.query().order(iot_event.mac, iot_event.timestamp).fetch(batch_size)
 
-    if len(events) == 0:
+    if len(_events) ==0:
         return
-    elif len(events) == 1000:
-        deferred.defer(rollup_events,_queue='rollup')
 
-    mac_weeks = collections.defaultdict(lambda: collections.defaultdict(list))
+    mac_periods = collections.defaultdict(lambda: collections.defaultdict(list))
 
-    for e in events:
-        mac_weeks[e.mac][iot_week.dt_to_period(e.timestamp)].append(e)
+    for e in _events:
+        mac_periods[e.mac][iot_week.dt_to_period(e.timestamp)].append(e)
 
-    for mac,weeks in mac_weeks.iteritems():
+    for mac, periods in mac_periods.iteritems():
 
-        for week,events in weeks.iteritems():
+        for period, events in periods.iteritems():
 
-            rollup = iot_week.get_or_create(mac=mac,start=week)
+            rollup = iot_week.get_or_create(mac=mac, start=period)
+
             rollup.append(events)
 
-            logging.info('{} events for {} added into rollup({}) with {} total events'.format(len(events),mac,week,len(rollup.data)))
-            # rollup.put()
-            # ndb.delete_multi([e.key for e in events])
+            rollup.put()
+            logging.info('{} events for {} added into {} with {} total events'.format(len(events), rollup.key, period,
+                                                                                      len(rollup.data)))
+            logging.info('Event extent is {} -> {}'.format(events[0].timestamp, events[-1].timestamp))
+            logging.info('Data extent is {} -> {}'.format(rollup.d_start, rollup.d_end))
+            ndb.delete_multi([e.key for e in events])
 
-
-
+    if len(_events) == 1000:
+        deferred.defer(rollup_events, _queue='rollup')
 
 

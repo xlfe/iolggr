@@ -158,28 +158,27 @@ class device(object):
             if iot_week.query(iot_week.mac == dev_id).fetch(1,keys_only=True) is None:
                 raise AttributeError('No device with MAC {} found'.format(dev_id))
 
-    def week(self,dt):
-        _dt = iot_week.dt_to_period(dt)
-        return iot_week.query(iot_week.mac == self.dev_id).filter(iot_week.start == _dt).get()
+    def single(self,dt):
+        start = iot_week.dt_to_period(dt)
+        return iot_week.get(self.dev_id, start)
 
-
-    def weeks(self,start,end):
+    def multiple(self,start,end):
 
         assert end > start
 
         _start = iot_week.dt_to_period(start)
-        weeks = []
+        periods = []
 
         while _start < end:
-            weeks.append(_start)
+            periods.append(ndb.Key(iot_week,iot_week.gen_id(self.dev_id,_start)))
             _start += iot_week.period_length
 
-        weeks = iot_week.query(iot_week.mac == self.dev_id).filter(iot_week.start.IN(weeks)).order(iot_week.start).fetch(10)
-        logging.info('{} weeks retrieved with start {} and end {}'.format(len(weeks),start.isoformat(),end.isoformat()))
-        for week in weeks:
-            logging.info('{} - {} with {} obs'.format(week.start,week.end,len(week.data)))
+        results = filter(lambda x: x is not None, ndb.get_multi(periods))
+        logging.info('{} periods retrieved between {} and end {}'.format(len(results),start.isoformat(),end.isoformat()))
+        for r in results:
+            logging.info('Period {} -> {} has {} obs'.format(r.start,r.end,len(r.data)))
 
-        return weeks
+        return results
 
     @property
     def name(self):
@@ -290,67 +289,80 @@ class device_query(json_response):
             dev.prefetch_recent()
             logging.info('Pre-fetching most recent observations')
 
-        weeks = dev.weeks(start=start,end=end)
-        result = []
+        historical = dev.multiple(start=start,end=end)
 
-        if len(weeks) == 0 and prefetch is False:
-            #No historical data, recent data not requested...
+        #No historical data and recent data not requested?
+        if len(historical) == 0 and prefetch is False:
             return self.get_response(204, {})
 
+        result = []
         start_dt = None
         end_dt = None
-        if len(weeks) > 0:
 
-            start_dt = weeks[0].d_start
+        if len(historical) > 0:
 
-            for n,week in enumerate(weeks):
+            #if we have rollup data, start date is start of that period
+            #because the first observation always has seconds that indicate that...
+            start_dt = historical[0].start
+
+            for n,period in enumerate(historical):
 
                 if n > 0:
-                    diff = int((weeks[n].d_start - weeks[n-1].d_end).total_seconds())
-                    zero = list(week.data[0])
+                    #After the first period, every additional period we need to calculate the diff seconds
+                    prev_p = historical[n-1]
+                    assert period.d_start.microsecond == 0
+                    assert prev_p.d_end.microsecond == 0
+
+                    diff = int((period.d_start - prev_p.d_end).total_seconds())
+
+                    zero = list(period.data[0])
                     zero[0] += diff
-                    week.data[0] = tuple(zero)
+                    period.data[0] = tuple(zero)
 
-                result.extend(week.data)
-                end_dt = week.d_end
-                name = week.name
+                result.extend(period.data)
+                end_dt = period.d_end
+                name = period.name
 
+        #Do we have recent results?
         if prefetch:
             recent = dev.resolve_recent()
 
             if len(recent) > 0:
+                logging.info('{} recent obs found'.format(len(recent)))
 
-                if end_dt is None:
-                    start_dt = recent[0].timestamp
+                if len(historical) == 0:
+                    logging.info('No historical data yet')
+                    start_dt = recent[0].timestamp.replace(microsecond=0)
                     end_dt = start_dt
 
                 data = []
 
                 end_dt = iot_week._append(
-                    _start=start_dt,
-                    _end=None,
+                    _start=recent[0].timestamp.replace(microsecond=0),
+                    _end=datetime.now(),
                     _d_end=end_dt,
                     events=recent,
-                    data=data,
+                    _data=data,
                     offsets=None,
                     dt_to_chunk=lambda x:0,
                     stored_params=iot_week.stored_params,
-                    enforce_end=False
                 )
 
                 name = recent[-1].name
 
                 result.extend(data)
-                logging.info('{} recent results appended'.format(len(recent)))
+                logging.info('{} recent results appended'.format(len(data)))
 
 
-        s = start_dt
-        for d in result:
-            s += timedelta(seconds=d[0])
+        if True:
+            s = start_dt
+            for d in result:
+                # logging.info('{} {} {}'.format(s,d[0],d))
+                s += timedelta(seconds=d[0])
 
-        logging.info('Data period appears to be {} -> {}'.format(start_dt,s))
-        logging.info('End date is {}'.format(end_dt))
-        assert end_dt.replace(microsecond=0) == s.replace(microsecond=0)
+            logging.info('Data period appears to be {} -> {}'.format(start_dt,end_dt))
+            logging.info('Calculated end date is {}'.format(s))
+            assert end_dt == s
 
         return self.get_response(200,{
             "Device": [

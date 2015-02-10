@@ -1,0 +1,65 @@
+html, body
+  margin: 20px
+
+.axis path, .axis line
+  fill: none
+  stroke: #000
+  opacity: 0.2
+  shape-rendering: crispEdges
+
+.line
+  fill: none
+  stroke: steelblue
+  stroke-width: 1.5px
+
+.pin
+  fill: none
+  stroke: steelblue
+
+text.label-text, .tick text
+  font-size: 12px
+
+.focus line
+  stroke: steelblue
+  stroke-dasharray: 3, 3
+  opacity: 0.5
+
+.y1, .y3
+  opacity: 0.8
+  stroke: white
+  stroke-width: 3.5px
+
+$d3-colours: #1f77b4 #ff7f0e #2ca02c #d62728 #9467bd #8c564b #e377c2 #7f7f7f #bcbd22 #17becf
+
+@for $i from 1 through length($d3-colours)
+  li.label-#{$i}, li.label-#{$i}:before
+    color: nth($d3-colours, $i)
+  .line.colour-#{$i}
+    stroke: nth($d3-colours, $i)
+
+li.label-chart
+  list-style-type: square
+
+ul.label-chart
+  list-style: none
+  padding: 0
+  margin: 0
+
+  li
+    padding-left: 1em
+    text-indent: -.7em
+    a
+      color: inherit
+    span
+      padding-left: 1em
+  li:before
+    content: "█ "
+
+
+svg
+  margin-top: -1em
+  margin-bottom: 1em
+
+.refresh-icon
+  font-size: 12px
+  colour: grey

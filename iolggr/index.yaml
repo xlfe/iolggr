@@ -35,10 +35,10 @@ indexes:
 - kind: iot_week
   properties:
   - name: mac
-  - name: end
-    direction: desc
+  - name: name
 
 - kind: iot_week
   properties:
   - name: mac
-  - name: name
+  - name: start
+    direction: desc
