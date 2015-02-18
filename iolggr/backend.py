@@ -1,9 +1,3 @@
-
-
-
-
-#
-#
 import webapp2
 import logging
 import json
@@ -214,7 +208,7 @@ class device(object):
             obs = list(w.data[-1])
             obs[0] = 0
             name = w.name
-            start = w.d_end
+            start = format_timestamp(w.d_end)
             key = w.stored_params
             data = tuple(obs)
         else:
@@ -258,7 +252,7 @@ class device_query(json_response):
         except AttributeError:
             return self.get_response(404,{})
 
-        rel = self.request.get('rel',None)
+        rel = self.request.get('rel', None)
 
         if rel is not None:
             try:
@@ -354,7 +348,7 @@ class device_query(json_response):
                 logging.info('{} recent results appended'.format(len(data)))
 
 
-        if True:
+        if False:
             s = start_dt
             for d in result:
                 # logging.info('{} {} {}'.format(s,d[0],d))
@@ -375,9 +369,6 @@ class device_query(json_response):
                 }
             ]
         })
-
-
-
 
 api = webapp2.WSGIApplication([
     ('/api/iplists/me', ip_handler),
