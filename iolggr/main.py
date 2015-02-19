@@ -29,7 +29,7 @@ class LogHandler(webapp2.RequestHandler):
         mac = self.request.headers['X-Mac']
 
         #populate params with all stats received from device
-        params['AP-mode'] = self.request.headers['X-Mode']
+        # params['AP-mode'] = self.request.headers['X-Mode']
         params['name'] = self.request.headers['X-Name']
 
         stats = self.request.headers['X-Stats'].split(',')
