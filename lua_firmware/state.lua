@@ -3,7 +3,6 @@ if s.wifi_attempts > 50 then
     s.wifi_attempts = 48
     s.mode = 0
     set_vars()
-    file.reset() --Reset system config...
 end
 if s.mode == 1 then
     print("Run mode..\n")
@@ -15,7 +14,7 @@ if s.mode == 1 then
     wifi.sta.getap(function(t)
         for k, v in pairs(t) do
             if k == s.ssid then
-                wifi_stats = "\r\nX-Mode: " .. wifi.getmode() .. "\r\nX-Stats:" .. v
+                wifi_stats = "\r\nX-Stats:" .. v
             end
         end
     end)
@@ -24,6 +23,7 @@ if s.mode == 1 then
         bmp.init(4, 5)
         tmr.stop(0)
         tmr.alarm(0, 1000, 1, check_conn)
+	t,p = bmp.sample()
     end)
     tmr.alarm(3, 20000, 0, function() do_r(s.mins_sleep*60) end)
 else

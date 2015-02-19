@@ -29,9 +29,9 @@ tmr.alarm(1, 1000, 0, function()
                         s.ssid = t["0"]
                         s.pass = t["1"]
                         s.s_name = t["2"]
-                        s.wifi_attempts = 48
+                        s.wifi_attempts = 49
                         conn:send("HTTP/1.1 200 OK\n\n<html<body><h3>Now trying to connect to your wifi network.</h3>")
-                        conn:send("<h3><a href=\"http://iolggr.appspot.com/device/" .. mac .. "\">View your device</a> <-- SAVE THIS LINK!</h3></body></html>")
+                        conn:send("<h3><a href=\"http://iolggr.appspot.com/devices/" .. mac .. "\">View your device</a> <-- SAVE THIS LINK!</h3></body></html>")
                         conn:send("\r\n\r\n")
                         conn:close()
                         tmr.alarm(0, 5000, 0, function()

@@ -8,7 +8,6 @@ function check_conn()
         tmr.stop(0)
         print("On wifi with IP")
         wifi_up = up_ms()
-        t, p = bmp.sample()
         conn = net.createConnection(net.TCP, 0)
         conn:connect(s.log_port, s.log_host)
         conn:on("receive", function(conn, payload)
@@ -35,9 +34,9 @@ function check_conn()
                     "\r\nContent-type: text/plain" ..
                     "\r\nCache-Control: no-cache, no-store, must-revalidate\r\nPragma: no-cache\r\nExpires: 0" ..
                     "\r\nContent-length: 0" ..
-                    "\r\nUser-Agent: NodeMCU-Lua XLFE-Logger Version 1.0" ..
-                    "\r\nHost: " .. s.log_host .. "\r\nX-Name: " .. s.s_name .. "\r\nX-Mac: " .. mac .. wifi_stats)
-            conn:send("\r\nX-Log: temp=" .. t .. "&pressure=" .. p .. "&delay=" .. up_ms() .. "&w_delay=" .. wifi_up ..
+                    "\r\nUser-Agent: NodeMCU-Lua XLFE-Logger Version 1.1" ..
+                    "\r\nHost: " .. s.log_host .. "\r\nX-Name: " .. s.s_name .. "\r\nX-Mac: " .. mac .. wifi_stats ..
+                    "\r\nX-Log: temp=" .. t .. "&pressure=" .. p .. "&delay=" .. up_ms() .. "&w_delay=" .. wifi_up ..
                     "&w_att=" .. s.wifi_attempts .. "&c_att=" .. s.conn_attempts .. "\r\n\r\n")
         end)
     end
