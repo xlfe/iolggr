@@ -26,9 +26,7 @@ export default DS.Model.extend({
 
             start.add(+_[0], 'seconds');
 
-            var
-
-                _obs = _.slice(1),
+            var _obs = _.slice(1),
                 obj = {
                     dt: start.clone().toDate()
                 };

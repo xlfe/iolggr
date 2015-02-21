@@ -6,6 +6,9 @@ from google.appengine.ext import ndb
 from models import iot_event,iot_week,format_timestamp,to_dt
 from datetime import date,datetime,time,timedelta
 
+# _log = lambda x:logging.info(x)
+_log = lambda x:x
+
 
 class NDBEncoder(json.JSONEncoder):
     """JSON encoding for NDB models and properties"""
@@ -106,7 +109,7 @@ class json_response(webapp2.RequestHandler):
 
         # Create the JSON-encoded response
         try:
-            response = webapp2.Response(json.dumps(content, cls=NDBEncoder))
+            response = webapp2.Response(json.dumps(content)) #, cls=NDBEncoder))
         except:
             logging.info(content)
             raise
@@ -126,10 +129,10 @@ class ip_handler(json_response):
         my_remote_addr = self.request.remote_addr
 
         recent = iot_event.query(projection=['mac','name'], distinct=True).filter(iot_event.remote_addr == my_remote_addr).fetch(1000)
-        logging.info('{} results fetched from projection query on iot_event'.format(len(recent)))
+        _log('{} results fetched from projection query on iot_event'.format(len(recent)))
 
         older = iot_week.query(projection=['mac','name'], distinct=True).filter(iot_week.remote_addrs == my_remote_addr).fetch(1000)
-        logging.info('{} older results fetched from projection query on iot_week'.format(len(older)))
+        _log('{} older results fetched from projection query on iot_week'.format(len(older)))
 
         macs = {}
         for r in recent + older:
@@ -167,9 +170,9 @@ class device(object):
             _start += iot_week.period_length
 
         results = filter(lambda x: x is not None, ndb.get_multi(periods))
-        logging.info('{} periods retrieved between {} and end {}'.format(len(results),start.isoformat(),end.isoformat()))
+        _log('{} periods retrieved between {} and end {}'.format(len(results),start.isoformat(),end.isoformat()))
         for r in results:
-            logging.info('Period {} -> {} has {} obs'.format(r.start,r.end,len(r.data)))
+            _log('Period {} -> {} has {} obs'.format(r.start,r.end,len(r.data)))
 
         return results
 
@@ -241,15 +244,29 @@ class device_single(json_response):
         result = dev.most_recent_observation()
         return self.get_response(200, { 'device': result })
 
-lengths = {
-    'day':lambda x: x- timedelta(days=1),
-    'week':lambda x: x- timedelta(days=7),
-    'month':lambda x: x- timedelta(days=31)
-}
-
-
 class device_query(json_response):
 
+
+    def dont_get(self):
+        # This is the main function for profiling
+        # We've renamed our original main() above to real_main()
+        import cProfile, pstats
+        import StringIO
+        prof = cProfile.Profile()
+        prof = prof.runctx("self.profile_get()", globals(), locals())
+
+        stream = StringIO.StringIO()
+        stats = pstats.Stats(prof, stream=stream)
+        stats.sort_stats("time")  # Or cumulative
+        stats.print_stats(80)  # 80 = how many to print
+        # The rest is optional.
+        # stats.print_callees()
+        # stats.print_callers()
+        logging.info("Profile data:\n%s", stream.getvalue())
+
+
+
+    # def profile_get(self):
     def get(self):
         dev_id = self.request.get('id',None)
 
@@ -259,7 +276,6 @@ class device_query(json_response):
             return self.get_response(404,{})
 
         rel = self.request.get('rel', None)
-        length = self.request.get('len','day')
 
         if rel is not None:
             try:
@@ -267,8 +283,8 @@ class device_query(json_response):
             except ValueError:
                 return self.get_response(500, {})
 
+            start = datetime.now() - iot_week.period_length*(rel+1)
             end   = datetime.now() - iot_week.period_length*(rel+0)
-            start = lengths[length](end)
 
         else:
             start = self.request.get('start', None)
@@ -288,7 +304,7 @@ class device_query(json_response):
         prefetch = end > datetime.now() - timedelta(hours=3)
         if prefetch:
             dev.prefetch_recent()
-            logging.info('Pre-fetching most recent observations')
+            _log('Pre-fetching most recent observations')
 
         historical = dev.multiple(start=start,end=end)
 
@@ -308,15 +324,7 @@ class device_query(json_response):
 
             for n,period in enumerate(historical):
 
-                end_dt = period.d_end
-
-                if n == 0:
-                    chunk = period.dt_to_chunk(end)
-                    start_dt, end_dt, slice = period.slice(chunk,period.num_periods-1)
-                    logging.info('{} chunk has {} -> {} with {} obs'.format(chunk,start_dt,end_dt,len(slice)))
-                    result.extend(slice)
-
-                else:
+                if n > 0:
                     #After the first period, every additional period we need to calculate the diff seconds
                     prev_p = historical[n-1]
                     assert period.d_start.microsecond == 0
@@ -327,9 +335,9 @@ class device_query(json_response):
                     zero = list(period.data[0])
                     zero[0] += diff
                     period.data[0] = tuple(zero)
-                    result.extend(period.data)
 
-
+                end_dt = period.d_end
+                result.extend(period.data)
                 name = period.name
 
         #Do we have recent results?
@@ -337,10 +345,10 @@ class device_query(json_response):
             recent = dev.resolve_recent()
 
             if len(recent) > 0:
-                logging.info('{} recent obs found'.format(len(recent)))
+                _log('{} recent obs found'.format(len(recent)))
 
                 if len(historical) == 0:
-                    logging.info('No historical data yet')
+                    _log('No historical data yet')
                     start_dt = recent[0].timestamp.replace(microsecond=0)
                     end_dt = start_dt
 
@@ -360,7 +368,7 @@ class device_query(json_response):
                 name = recent[-1].name
 
                 result.extend(data)
-                logging.info('{} recent results appended'.format(len(data)))
+                _log('{} recent results appended'.format(len(data)))
 
 
         if False:
