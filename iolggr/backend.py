@@ -242,6 +242,13 @@ class device_single(json_response):
         result = dev.most_recent_observation()
         return self.get_response(200, { 'device': result })
 
+lengths = {
+    'day':lambda x: x- timedelta(days=1),
+    'week':lambda x: x- timedelta(days=7),
+    'month':lambda x: x- timedelta(days=31)
+}
+
+
 class device_query(json_response):
 
     def get(self):
@@ -253,6 +260,7 @@ class device_query(json_response):
             return self.get_response(404,{})
 
         rel = self.request.get('rel', None)
+        len = self.request.get('len','day')
 
         if rel is not None:
             try:
@@ -260,8 +268,8 @@ class device_query(json_response):
             except ValueError:
                 return self.get_response(500, {})
 
-            start = datetime.now() - iot_week.period_length*(rel+1)
             end   = datetime.now() - iot_week.period_length*(rel+0)
+            start = lengths[len](end)
 
         else:
             start = self.request.get('start', None)
@@ -301,6 +309,8 @@ class device_query(json_response):
 
             for n,period in enumerate(historical):
 
+                end_dt = period.d_end
+
                 if n > 0:
                     #After the first period, every additional period we need to calculate the diff seconds
                     prev_p = historical[n-1]
@@ -312,9 +322,14 @@ class device_query(json_response):
                     zero = list(period.data[0])
                     zero[0] += diff
                     period.data[0] = tuple(zero)
+                    result.extend(period.data)
 
-                result.extend(period.data)
-                end_dt = period.d_end
+                else:
+                    chunk = period.dt_to_chunk(end)
+                    logging.info('{} chunk'.format(chunk))
+                    start_dt, end_dt, slice = period.slice(chunk,period.num_periods-1)
+                    result.extend(slice)
+
                 name = period.name
 
         #Do we have recent results?

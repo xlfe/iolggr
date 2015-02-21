@@ -35,26 +35,30 @@ class iot_event_roll(ndb.Model):
             return self.start
         return self.start + timedelta(seconds=self.data[0][0])
 
+    @property
+    def num_periods(self):
+        return (self.period_length.total_seconds() / self.chunk_length.total_seconds())
+
     def slice(self, _from, _to):
 
-        logging.info('Slice requested for {} -> {}'.format(_from,_to))
+        _s = lambda x: str(int(x))
+        logging.info('Slice requested for {} -> {}'.format(_s(_from),_s(_to)))
 
-
-        length = (self.period_length.total_seconds() / self.chunk_length.total_seconds())
-
+        logging.info(self.offsets)
+        length = self.num_periods
 
         assert _from >= 0
-        assert _to   < length
+        assert _to   <  length
         assert _from <= _to
 
         start = 0
         start_dt = self.d_start
         if _from > 0:
-            while _from not in self.offsets and _from > 0:
+            while _s(_from) not in self.offsets and _from > 0:
                 _from -= 1
 
             try:
-                start,start_dt = self.offsets[_from]
+                start,start_dt = self.offsets[_s(_from)]
             except KeyError:
                 start = 0
                 start_dt = self.d_start
@@ -64,11 +68,11 @@ class iot_event_roll(ndb.Model):
         end_dt = self.d_end
         if _to < (length - 1):
             _to += 1
-            while _to not in self.offsets and _to < (length - 1):
+            while _s(_to) not in self.offsets and _s(_to) < (length - 1):
                 _to += 1
 
             try:
-                end,end_dt = self.offsets[_to]
+                end,end_dt = self.offsets[_s(_to)]
             except KeyError:
                 end = len(self.data)
                 end_dt = self.d_end
@@ -187,10 +191,10 @@ class iot_event_roll(ndb.Model):
 
             #If we've just moved into the next chunk, store the chunk boundary for later use
             if prev_chunk != this_chunk:
-                logging.info('CHUNK {} -> {} after {} obs'.format(prev_chunk,this_chunk,len(data)))
+                logging.info('CHUNK {} -> {} after {} obs'.format(prev_chunk,this_chunk,len(data)+len(_data)))
 
                 #chunk boundaries are (n_previous_observations, timestamp)
-                offsets[this_chunk] = (len(data),format_timestamp(ts))
+                offsets[this_chunk] = (len(_data) + len(data),format_timestamp(ts))
 
             #update the data end_point and add the rollup
             d_end = ts
@@ -229,6 +233,7 @@ class iot_week(iot_event_roll):
 
     def dt_to_chunk(self,dt):
         # return int((dt - self.start).total_seconds()/3600)
+        assert dt >= self.start and dt <= self.end
         return (dt - self.start).days
 
 
