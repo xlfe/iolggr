@@ -2,13 +2,13 @@ import collections
 import logging
 from google.appengine.ext import ndb
 from google.appengine.ext import deferred
-from datetime import timedelta
+from datetime import timedelta,datetime
 import random
 import json
 
 
 format_timestamp = lambda x:x.replace(microsecond=0).isoformat()
-
+to_dt = lambda x:datetime.strptime(x, '%Y-%m-%dT%H:%M:%S')
 
 
 class iot_event_roll(ndb.Model):
@@ -59,6 +59,7 @@ class iot_event_roll(ndb.Model):
 
             try:
                 start,start_dt = self.offsets[_s(_from)]
+                start_dt = to_dt(start_dt)
             except KeyError:
                 start = 0
                 start_dt = self.d_start
@@ -73,6 +74,7 @@ class iot_event_roll(ndb.Model):
 
             try:
                 end,end_dt = self.offsets[_s(_to)]
+                end_dt = to_dt(end_dt)
             except KeyError:
                 end = len(self.data)
                 end_dt = self.d_end

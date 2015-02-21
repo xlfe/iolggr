@@ -3,10 +3,9 @@ import logging
 import json
 from json.encoder import INFINITY,encode_basestring,encode_basestring_ascii,c_make_encoder,_make_iterencode
 from google.appengine.ext import ndb
-from models import iot_event,iot_week,format_timestamp
+from models import iot_event,iot_week,format_timestamp,to_dt
 from datetime import date,datetime,time,timedelta
 
-to_dt = lambda x:datetime.strptime(x, '%Y-%m-%dT%H:%M:%S')
 
 class NDBEncoder(json.JSONEncoder):
     """JSON encoding for NDB models and properties"""
@@ -260,7 +259,7 @@ class device_query(json_response):
             return self.get_response(404,{})
 
         rel = self.request.get('rel', None)
-        len = self.request.get('len','day')
+        length = self.request.get('len','day')
 
         if rel is not None:
             try:
@@ -269,7 +268,7 @@ class device_query(json_response):
                 return self.get_response(500, {})
 
             end   = datetime.now() - iot_week.period_length*(rel+0)
-            start = lengths[len](end)
+            start = lengths[length](end)
 
         else:
             start = self.request.get('start', None)
@@ -311,7 +310,13 @@ class device_query(json_response):
 
                 end_dt = period.d_end
 
-                if n > 0:
+                if n == 0:
+                    chunk = period.dt_to_chunk(end)
+                    start_dt, end_dt, slice = period.slice(chunk,period.num_periods-1)
+                    logging.info('{} chunk has {} -> {} with {} obs'.format(chunk,start_dt,end_dt,len(slice)))
+                    result.extend(slice)
+
+                else:
                     #After the first period, every additional period we need to calculate the diff seconds
                     prev_p = historical[n-1]
                     assert period.d_start.microsecond == 0
@@ -324,11 +329,6 @@ class device_query(json_response):
                     period.data[0] = tuple(zero)
                     result.extend(period.data)
 
-                else:
-                    chunk = period.dt_to_chunk(end)
-                    logging.info('{} chunk'.format(chunk))
-                    start_dt, end_dt, slice = period.slice(chunk,period.num_periods-1)
-                    result.extend(slice)
 
                 name = period.name
 
