@@ -63,3 +63,106 @@ svg
 .refresh-icon
   font-size: 12px
   colour: grey
+
+.active
+  font-weight: normal
+  color: black
+  &:hover
+    color: black
+
+
+
+
+
+//Fancy spinner
+//colors
+$white_33: rgba(255, 255, 255, 0.33)
+$color_outer: nth($d3-colours, 1)
+$color_inner: nth($d3-colours, 2)
+$color_middle: nth($d3-colours, 3)
+$loader_sz: 200px
+
+//@extend-elements
+//original selectors
+//#loader, #loading
+.extend_1
+  display: block
+  position: relative
+  left: 45%
+  top: 45%
+
+#loader-wrapper
+  position: fixed
+  top: 0
+  left: 0
+  width: 100%
+  height: 100%
+  z-index: 1000
+  background-color: $white_33
+
+#loader
+  @extend .extend_1
+  width: $loader_sz
+  height: $loader_sz
+  margin: -$loader_sz/2 0 0 -$loader_sz/2
+  border-radius: 50%
+  border: 5px solid transparent
+  border-top-color: $color_outer
+  -webkit-animation: spin 2s linear infinite
+  animation: spin 2s linear infinite
+  &:before
+    content: ""
+    position: absolute
+    top: 5px
+    left: 5px
+    right: 5px
+    bottom: 5px
+    border-radius: 50%
+    border: inherit
+    border-top-color: $color_middle
+    animation: spin 3s linear infinite
+    -webkit-animation: spin 3s linear infinite
+
+  &:after
+    content: ""
+    position: absolute
+    top: 15px
+    left: 15px
+    right: 15px
+    bottom: 15px
+    border-radius: 50%
+    border: inherit
+    border-top-color: $color_inner
+    animation: spin 1.5s linear infinite
+    -webkit-animation: spin 1.5s linear infinite
+
+#loading
+  @extend .extend_1
+  //margin-left: -2em
+  font-weight: bold
+  width: $loader_sz
+  text-align: center
+  background: none
+
+@-webkit-keyframes spin
+  0%
+    -webkit-transform: rotate(0deg)
+    -ms-transform: rotate(0deg)
+    transform: rotate(0deg)
+
+  100%
+    -webkit-transform: rotate(360deg)
+    -ms-transform: rotate(360deg)
+    transform: rotate(360deg)
+
+@keyframes spin
+  0%
+    -webkit-transform: rotate(0deg)
+    -ms-transform: rotate(0deg)
+    transform: rotate(0deg)
+
+  100%
+    -webkit-transform: rotate(360deg)
+    -ms-transform: rotate(360deg)
+    transform: rotate(360deg)
+

@@ -94,6 +94,7 @@ export default Em.Component.extend({
             x_ext = [],
             y_ext = [],
             series = [],
+            date_filter =this.get('time'),
             height = this.get('height') - margin.top - margin.bottom;
 
         d.select('svg').remove();
@@ -124,7 +125,9 @@ export default Em.Component.extend({
             .attr("x2", width);
 
         charts.forEach(function (chart) {
-            var data = chart.get('_obs');
+            var data = chart.get('_obs').filter(function(_){
+                return _.dt >= date_filter[0] && _.dt <= date_filter[1];
+            });
 
             d3.extent(data, function (d) {
                 return d.dt;
@@ -299,5 +302,5 @@ export default Em.Component.extend({
 
         }
 
-    }.observes('charts', 'charts.[]')
+    }.observes('charts', 'charts.[]','time')
 });

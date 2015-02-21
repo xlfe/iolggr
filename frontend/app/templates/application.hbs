@@ -12,7 +12,10 @@
                 <span class="icon-bar"></span>
             </button>
 
-            <a class="navbar-brand" href="#">iolggr</a>
+            {{#link-to  'application' class="navbar-brand"}}
+
+                iolggr
+            {{/link-to}}
         </div>
 
         <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
@@ -27,10 +30,9 @@
                     </a>
                 {{/link-to}}
 
-                {{#link-to "charts" tagName="li" class="menu-link"}}
+                {{#link-to "setup" tagName="li" class="menu-link"}}
                     <a {{bind-attr href="view.href"}}>
-                        <i class="fa fa-lg fa-search"></i>
-                        Charts
+                        Setup
                     </a>
                 {{/link-to}}
 

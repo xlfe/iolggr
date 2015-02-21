@@ -148,8 +148,8 @@ class device(object):
     def __init__(self,dev_id):
         self.dev_id = dev_id
 
-        if iot_event.query(iot_event.mac == dev_id).fetch(1,keys_only=True) is None:
-            if iot_week.query(iot_week.mac == dev_id).fetch(1,keys_only=True) is None:
+        if len(iot_event.query(iot_event.mac == dev_id).fetch(1,keys_only=True)) == 0:
+            if len(iot_week.query(iot_week.mac == dev_id).fetch(1,keys_only=True)) == 0:
                 raise AttributeError('No device with MAC {} found'.format(dev_id))
 
     def single(self,dt):
@@ -179,7 +179,7 @@ class device(object):
         recent = iot_event.query(projection=['name'], distinct=True).filter(iot_event.mac == self.dev_id).get()
         try:
             return recent.name
-        except AttributeError:
+        except:
             older = iot_week.query(projection=['name'], distinct=True).filter(iot_week.mac == self.dev_id).get()
             return older.name
 
@@ -236,7 +236,7 @@ class device_single(json_response):
         """
         try:
             dev = device(dev_id=dev_id)
-        except AttributeError:
+        except:
             return self.get_response(404,{})
 
         result = dev.most_recent_observation()
@@ -249,7 +249,7 @@ class device_query(json_response):
 
         try:
             dev = device(dev_id=dev_id)
-        except AttributeError:
+        except:
             return self.get_response(404,{})
 
         rel = self.request.get('rel', None)

@@ -1,26 +1,47 @@
+{{#if loading}}
+    <div id="loader-wrapper">
+        <div id="loading">
+            iolggr<br>
+            log all the things
+        </div>
+        <div id="loader"></div>
+    </div>
+{{/if}}
+
 <h3>
     Chart
     <a class="refresh-icon" href="" {{action 'refresh'}}> <span class="glyphicon glyphicon-refresh"></span> </a>
 </h3>
 
+<h5>
+    Display:
+    {{#each tp in timeperiods}}
+        <a href="#" {{bind-attr class="tp.active::active"}} {{action 'set_tp' tp}}>
+            {{tp.name}}
+        </a>&nbsp;
+
+    {{/each}}
+</h5>
+
+
 <h4>
     Devices:
 
-<ul class="label-chart">
-    {{#each device in _devices}}
-        <li {{bind-attr class=device.label_class}}>
-            {{#link-to 'device' device.id}}
-                {{device.name}}
-            {{/link-to}}
-            <a href="" {{action 'remove' device}}>
-                <span class="glyphicon glyphicon-remove"></span>
-            </a>
-        </li>
-    {{/each}}
-</ul>
+    <ul class="label-chart">
+        {{#each device in _devices}}
+            <li {{bind-attr class=device.label_class}}>
+                {{#link-to 'device' device.id}}
+                    {{device.name}}
+                {{/link-to}}
+                <a href="" {{action 'remove' device}}>
+                    <span class="glyphicon glyphicon-remove"></span>
+                </a>
+            </li>
+        {{/each}}
+    </ul>
 </h4>
 
-{{d3-chart charts=_devices chart-type="temp" name="Temperature"}}
-{{d3-chart charts=_devices chart-type="pressure" name="Pressure"}}
-{{d3-chart charts=_devices chart-type="rssi" name="WIFI Signal"}}
-{{d3-chart charts=_devices chart-type="delay" name="Latency"}}
+{{d3-chart charts=_devices time=tp_active chart-type="temp" name="Temperature"}}
+{{d3-chart charts=_devices time=tp_active chart-type="pressure" name="Pressure"}}
+{{d3-chart charts=_devices time=tp_active chart-type="rssi" name="Wifi Signal"}}
+{{d3-chart charts=_devices time=tp_active chart-type="delay" name="Latency"}}
