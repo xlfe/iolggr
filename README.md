@@ -14,5 +14,6 @@ You may also be interested in:
 
 * PCBs manufactured through [dirtyPCBs](http://dirtypcbs.com/view.php?share=3451&accesskey=3c95e6f53910fa1181111da9e7cac7ba).
 * My [BMP280 firmware for nodemcu/ESP8266](https://github.com/xlfe/nodemcu-firmware)
+* [spiffy](https://github.com/xlfe/spiffy) - a (dirty-hack!) spiffs modification to bundle multiple (lua) files into a ROM to burn to the ESP8266 in one shot
 * [Photos from the build](http://www.smugmug.com/gallery/n-mLQfL/i-7JtGxx4)
  
