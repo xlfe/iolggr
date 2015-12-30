@@ -269,6 +269,7 @@ class device_query(json_response):
     # def profile_get(self):
     def get(self):
         dev_id = self.request.get('id',None)
+        name = None
 
         try:
             dev = device(dev_id=dev_id)
@@ -380,6 +381,9 @@ class device_query(json_response):
             logging.info('Data period appears to be {} -> {}'.format(start_dt,end_dt))
             logging.info('Calculated end date is {}'.format(s))
             assert end_dt == s
+
+        if name is None:
+            return self.get_response(404,"")
 
         return self.get_response(200,{
             "Device": [
