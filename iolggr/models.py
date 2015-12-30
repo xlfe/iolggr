@@ -170,11 +170,11 @@ class iot_event_roll(ndb.Model):
         for e in events:
 
             #Make sure each event actually belongs in this rollup
-            assert e.timestamp < _end
-            assert e.timestamp >= _start
+            assert e.timestamp < _end, 'Assertion Failed: {} < {}'.format(e.timestamp, _end)
+            assert e.timestamp >= _start, 'Assertion Failed: {} < {}'.format(e.timestamp, _start)
 
             #Assert that we've been given the events in order
-            assert e.timestamp >= d_end
+            assert e.timestamp >= d_end, 'Assertion Failed: {} >= {}'.format(e.timestamp, d_end)
 
             #We want precesion to be no greater than 1 second
             ts = e.timestamp.replace(microsecond=0)
