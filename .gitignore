@@ -20,3 +20,4 @@ frontend/testem.log
 iolggr/static
 *.pyc
 .idea/
+lua_firmware/nodemcu-uploader/

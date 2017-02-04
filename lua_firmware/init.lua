@@ -6,6 +6,7 @@ bme280.init(4, 5)
 --T temperature celsius x 100
 
 wifi.setmode(wifi.STATION)
+dofile("wifi.lua")
 wifi.sta.autoconnect(1)
 
 function set_baro()
