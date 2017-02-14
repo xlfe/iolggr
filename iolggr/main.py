@@ -26,9 +26,6 @@ class LogHandler(webapp2.RequestHandler):
     def post(self):
 
         params = {}
-        mac = self.request.headers['X-Mac']
-
-        #populate params with all stats received from device
         # params['AP-mode'] = self.request.headers['X-Mode']
         params['name'] = self.request.headers['X-Name']
 
@@ -40,21 +37,6 @@ class LogHandler(webapp2.RequestHandler):
         for param in log.strip().split('&'):
             k,v = param.split('=')
             params[k]= v
-
-        # bssid = None if 'AP-bssid' not in params else params['AP-bssid']
-
-        #check for exceptions, log them if they exist
-        c_att = int(params['c_att'])
-        w_att = int(params['w_att'])
-
-        assert c_att < 60 and w_att < 60
-
-        if c_att > 1:
-            iot_exception(mac=mac, exception='CONNECTION',params=params).put()
-
-        if w_att > 1:
-            iot_exception(mac=mac, exception='WIFI',params=params).put()
-
 
         _params = {}
 
