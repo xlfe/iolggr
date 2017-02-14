@@ -32,17 +32,17 @@ function send_temp()
 
     conn:on("disconnection", function(s, e)
         print("Disconnected")
-        dsleep(5*60)
+        dsleep(145)
     end)
 
     conn:on("connection", function(s, e)
         print("TCP Connected")
-        local tos = "mac=" .. _G.MAC .. "\ntemp=" .. _G.TEMP .. "\nbaro=" .. _G.BARO .. "\nup=" .. up_ms()
+        local tos = "mac=" .. _G.MAC .. "\ntemp=" .. _G.TEMP .. "\nbaro=" .. _G.BARO .. "\nup=" .. up_ms() .. "\nrssi=" .. _G.RSSI
         s:send(tos)
     end
     )
 
-    conn:connect(7654, '10.0.0.42')
+    conn:connect(7654, '10.0.0.2')
 end
 
 wifi.sta.eventMonReg(wifi.STA_CONNECTING, function()
@@ -57,6 +57,7 @@ end)
 wifi.sta.eventMonReg(wifi.STA_GOTIP, function()
     wifi.sta.eventMonStop()
     print("GOT_IP")
+    _G.RSSI = wifi.sta.getrssi()
     send_temp()
 end)
 
