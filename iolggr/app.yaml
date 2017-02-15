@@ -7,8 +7,9 @@ handlers:
   static_files: favicon.ico
   upload: favicon\.ico
 
-- url: /log
+- url: /log/.*
   script: main.app
+  secure: yes
 
 - url: /admin/.*
   script: main.app

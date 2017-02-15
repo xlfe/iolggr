@@ -5,89 +5,100 @@ import collections
 import logging
 import json
 
+BATCH_SIZE = 1000
 
 format_timestamp = lambda x:x.replace(microsecond=0).isoformat()
 to_dt = lambda x:datetime.strptime(x, '%Y-%m-%dT%H:%M:%S')
-PERIOD_LENGTH = timedelta(days=7)
 
-class iot_week(ndb.Model):
+class iot_rollup_base(ndb.Model):
 
-    #todo account for daylight savings
-
-    stored_params = 'temp,pressure,rssi,up'
     start = ndb.DateTimeProperty(required=True)
-    end = ndb.ComputedProperty(lambda x: x.start + PERIOD_LENGTH)
     updated = ndb.DateTimeProperty(auto_now=True)
     data = ndb.BlobProperty(compressed=False, indexed=False)
-    mac = ndb.StringProperty(required=True)
 
     @classmethod
-    def get(cls, mac, ts):
+    def get(cls, parent, _ts):
         """
         Retrieve the event roll for mac and ts
             sort by oldest first, and then filter by end being after ts.
             the result should have ts before end and there shouldn't be another result with ts after start
         """
 
-        return ndb.Query(kind=cls).order(cls.start).filter(cls.mac == mac, ts < cls.end).get()
+        ts = _ts - cls.period_length
+
+        return cls.query(ancestor=parent).order(cls.start).filter(cls.start >= ts).get()
 
     @classmethod
-    def get_or_create(cls, mac, ts):
+    def get_or_create(cls, parent, ts):
 
-        o = cls.get(mac, ts)
+        o = cls.get(parent, ts)
 
         if o is None:
-            o = cls(mac=mac, start=ts)
-            o.data = "[]".encode('zlib_codec')
+            o = cls(parent=parent, start=ts)
+            o.set_data([cls.stored_params])
 
         return o
 
+
     def append(self, events):
-        data = json.loads(self.data.decode('zlib_codec'))
+        data = self.get_data()
         data.extend(events)
-        self.data=json.dumps(data).encode('zlib_codec')
+        self.set_data(data)
+
+    def get_data(self):
+        return json.loads(self.data)
+
+    def set_data(self, data):
+        self.data = json.dumps(data)
+
+class iot_rollup_week(iot_rollup_base):
+    period_length = timedelta(days=7)
+    end = ndb.ComputedProperty(lambda x: x.start + iot_rollup_week.period_length)
+    stored_params = ['ts', 'temp', 'baro', 'rssi', 'up']
+
 
 
 class iot_event(ndb.Model):
-
-    timestamp = ndb.DateTimeProperty(auto_now_add=True)
-    mac = ndb.StringProperty()
-    name = ndb.StringProperty()
+    ts = ndb.DateTimeProperty(required=True)
     params = ndb.JsonProperty(indexed=False)
 
-def rollup_events(batch_size=1000):
-    """Roll-up individual events into a single iot_week object"""
+    def mk_data(self, params):
+        return [
+            self.params[k] for k in params
+        ]
 
+
+class iot_device(ndb.Model):
+    pass
+
+@ndb.transactional
+def do_a_rollup(device_key):
     #get a batch of events, oldest first
-    _events = iot_event.query().order(iot_event.mac, iot_event.timestamp).fetch(batch_size)
 
-    if len(_events) ==0:
-        return
+    events = iot_event.query(ancestor=device_key).order(iot_event.ts).fetch(250)
 
-    macs = collections.defaultdict(list)
+    if len(events) == 1000:
+        deferred.defer(do_a_rollup, device_key, _queue='rollup')
 
-    for e in _events:
-        macs[e.mac].append(e)
+    while events:
 
+        rollup = iot_rollup_week.get_or_create(parent=device_key, ts=events[0].ts)
 
-    #todo sorted
+        #The start of the rollup should always be earlier than the requested ts
+        assert rollup.start <= events[0].ts
 
-    for mac, periods in mac_periods.iteritems():
+        #get those events that would go into this rollup
+        rollup_candidates = filter(lambda _: _.ts < rollup.end, events)
 
-        for period, events in periods.iteritems():
+        #we should have at least one event here...
+        assert rollup_candidates
 
-            rollup = iot_week.get_or_create(mac=mac, start=period)
+        rollup.append(_.mk_data(rollup.stored_params) for _ in rollup_candidates)
+        rollup.put()
+        ndb.delete_multi([e.key for e in rollup_candidates])
+        logging.info('{} events for {} added into {}'.format(len(rollup_candidates), device_key, rollup.start))
 
-            rollup.append(events)
-
-            rollup.put()
-            logging.info('{} events for {} added into {} with {} total events'.format(len(events), rollup.key, period,
-                                                                                      len(rollup.data)))
-            logging.info('Event extent is {} -> {}'.format(events[0].timestamp, events[-1].timestamp))
-            logging.info('Data extent is {} -> {}'.format(rollup.d_start, rollup.d_end))
-            ndb.delete_multi([e.key for e in events])
-
-    if len(_events) == 1000:
-        deferred.defer(rollup_events, _queue='rollup')
+        for _ in rollup_candidates:
+            events.remove(_)
 
 
