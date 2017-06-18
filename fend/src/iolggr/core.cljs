@@ -11,8 +11,8 @@
            [goog.net Jsonp]))
 
 (def initial-spec
-  {:width  400
-   :height 200
+  {:width  640
+   :height 480
    :padding {:top 10, :left 30, :bottom 30, :right 10}
 
    :data
@@ -51,38 +51,122 @@
                   :update {:fill {:value "steelblue"}}
                   :hover {:fill {:value "red"}}}}]})
 
-(defui HelloWorld
+(defui Chart
   Object
   (render [this]
-    (dom/div nil (get (om/props this) :title))))
-
-(
-
-   defui Chart
-  Object
-  (render [this]
-    (dom/div nil "Hello, world!"))
-  (
-    componentDidMount [this]
+    (dom/div nil "chart"))
+  (componentDidMount [this]
                   (-> (vega-tools/validate-and-parse initial-spec)
                       (p/catch #(js/alert (str "Unable to parse spec:\n\n" %)))
                       (p/then #(-> (% {:el  (dom/node this)})
-                                   (.update))))
-                      )
-  )
+                                   (.update))))))
 
+(enable-console-print!)
 
+(def init-data
+  {:list/one [{:name "John" :points 0}
+              {:name "Mary" :points 0}
+              {:name "Bob"  :points 0}]
+   :list/two [{:name "Mary" :points 0 :age 27}
+              {:name "Gwen" :points 0}
+              {:name "Jeff" :points 0}]})
 
+;; -----------------------------------------------------------------------------
+;; Parsing
 
+(defmulti read om/dispatch)
 
+(defn get-people [state key]
+  (let [st @state]
+    (into [] (map #(get-in st %)) (get st key))))
 
-(def hello (om/factory Chart))
+(defmethod read :list/one
+  [{:keys [state] :as env} key params]
+  {:value (get-people state key)})
 
-(js/ReactDOM.render
-  ;; CHANGED
-  (apply dom/div nil
-         (map #(hello {:react-key %
-                       :title (str "Hello " %)})
-              (range 1)))
-  (gdom/getElement "app"))
+(defmethod read :list/two
+  [{:keys [state] :as env} key params]
+  {:value (get-people state key)})
+
+(defmulti mutate om/dispatch)
+
+(defmethod mutate 'points/increment
+  [{:keys [state]} _ {:keys [name]}]
+  {:action
+   (fn []
+     (swap! state update-in
+            [:person/by-name name :points]
+            inc))})
+
+(defmethod mutate 'points/decrement
+  [{:keys [state]} _ {:keys [name]}]
+  {:action
+   (fn []
+     (swap! state update-in
+            [:person/by-name name :points]
+            #(let [n (dec %)] (if (neg? n) 0 n))))})
+
+;; -----------------------------------------------------------------------------
+;; Components
+
+(defui Person
+  static om/Ident
+  (ident [this {:keys [name]}]
+    [:person/by-name name])
+  static om/IQuery
+  (query [this]
+    '[:name :points :age])
+  Object
+  (render [this]
+    (println "Render Person" (-> this om/props :name))
+    (let [{:keys [points name] :as props} (om/props this)]
+      (dom/li #js {:className "person"}
+              (dom/label nil (str name ", points: " points))
+              (dom/button
+                #js {:onClick
+                     (fn [e]
+                       (om/transact! this
+                                     `[(points/increment ~props)]))}
+                "+")
+              (dom/button
+                #js {:onClick
+                     (fn [e]
+                       (om/transact! this
+                                     `[(points/decrement ~props)]))}
+                "-")))))
+
+(def person (om/factory Person {:keyfn :name}))
+
+(defui ListView
+  Object
+  (render [this]
+    (println "Render ListView" (-> this om/path first))
+    (let [list (om/props this)]
+      (apply dom/ul nil
+             (map person list)))))
+
+(def list-view (om/factory ListView))
+
+(defui RootView
+  static om/IQuery
+  (query [this]
+    (let [subquery (om/get-query Person)]
+      `[{:list/one ~subquery} {:list/two ~subquery}]))
+  Object
+  (render [this]
+    (println "Render RootView")
+    (let [{:keys [list/one list/two]} (om/props this)]
+      (apply dom/div nil
+             [(dom/h2 nil "List A")
+              (list-view one)
+              (dom/h2 nil "List B")
+              (list-view two)]))))
+
+(def reconciler
+  (om/reconciler
+    {:state  init-data
+     :parser (om/parser {:read read :mutate mutate})}))
+
+(om/add-root! reconciler
+              RootView (gdom/getElement "app"))
 
