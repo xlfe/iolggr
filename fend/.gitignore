@@ -1,4 +1,5 @@
 /target
+.sass-cache/
 resources/
 /classes
 /checkouts
