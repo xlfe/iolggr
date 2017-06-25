@@ -74,13 +74,17 @@
 ;; -----------------------------------------------------------------------------
 ;; Parsing
 
+;         name dispatch-fn
 (defmulti read om/dispatch)
 
 (defn get-people [state key]
   (let [st @state]
     (into [] (map #(get-in st %)) (get st key))))
 
+; read function must return a hashmap containing a :value entry
 (defmethod read :list/one
+  ; the signature of a read fn is [env key params] - env is a hash map containing context & key is the requested key
+  ; destructuring state from env
   [{:keys [state] :as env} key params]
   {:value (get-people state key)})
 
@@ -90,6 +94,8 @@
 
 (defmulti mutate om/dispatch)
 
+; mutations return :action (function with no arguments)
+; :value is the a hashmap with :keys communicates what read operations should follow a mutation
 (defmethod mutate 'points/increment
   [{:keys [state]} _ {:keys [name]}]
   {:action
@@ -120,7 +126,7 @@
   (render [this]
     (println "Render Person" (-> this om/props :name))
     (let [{:keys [points name] :as props} (om/props this)]
-      (dom/li #js {:className "person"}
+      (dom/li #js {:className "person mdl"}
               (dom/label nil (str name ", points: " points))
               (dom/button
                 #js {:onClick
@@ -133,7 +139,9 @@
                      (fn [e]
                        (om/transact! this
                                      `[(points/decrement ~props)]))}
-                "-")))))
+                "-"))))
+  (js/componentHandler.upgradeElement (this) "MaterialTextfield")
+  )
 
 (def person (om/factory Person {:keyfn :name}))
 
