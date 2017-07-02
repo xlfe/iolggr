@@ -4,7 +4,6 @@
                            [org.clojure/clojure "1.8.0"]
                            [org.clojure/clojurescript "1.9.562"]
                            [com.stuartsierra/component "0.3.2"]
-                           [metosin/vega-tools "0.2.0"]
                            [org.omcljs/om "1.0.0-beta1" :exclusions [cljsjs/react cljsjs/react-dom]]
                            [cljs-react-material-ui "0.2.45"]
                            [figwheel-sidecar "0.5.4-7" :scope "test"]
