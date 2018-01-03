@@ -9,7 +9,7 @@ handlers:
 
 - url: /log/.*
   script: main.app
-  secure: yes
+  secure: always
 
 - url: /admin/.*
   script: main.app
