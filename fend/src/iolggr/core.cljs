@@ -26,8 +26,8 @@
   ; destructuring state from env
   [{:keys [state sensors] :as env} key params]
   (print "in read :sensors - " @state)
-  {:value (:sensors @state)}
-  )
+  {:value (:sensors @state)})
+
 
 (defmulti mutate om/dispatch)
 
@@ -78,40 +78,40 @@
          {
           :drawer-open? true
           :sensors     (map #(assoc % :checked true) [
-                         {:mac "1340c89be4c1" :name "Laundry"}
-                         {:mac "1340c89c0a69" :name "Hallway"}
-                         {:mac "1340c89ba2c7" :name "Basement"}
-                         {:mac "1340c89bd3fe" :name "Outside"}
-                         {:mac "1340c89bfd94" :name "Bedroom"}
-                         {:mac "1340c89c2062" :name "Mobile"}
-                         {:mac "1340c89bcd46" :name "Mobile2"}
-                         ])
-          })
+                                                      {:mac "1340c89be4c1" :name "Laundry"}
+                                                      {:mac "1340c89c0a69" :name "Hallway"}
+                                                      {:mac "1340c89ba2c7" :name "Basement"}
+                                                      {:mac "1340c89bd3fe" :name "Outside"}
+                                                      {:mac "1340c89bfd94" :name "Bedroom"}
+                                                      {:mac "1340c89c2062" :name "Mobile"}
+                                                      {:mac "1340c89bcd46" :name "Mobile2"}])})
+
+
 
 
 (defui RootView
 
   static om/IQuery
   (query [this]
-    [:sensors]
-    )
+    [:sensors])
+
 
   Object
   (render [this]
     (let
       [
        {:keys [sensors]} (om/props this)
-       {:keys [drawer-open?]} (om/get-state this)
-       ]
+       {:keys [drawer-open?]} (om/get-state this)]
+
       (ui/mui-theme-provider
         {:mui-theme (ui/get-mui-theme)}
         (dom/div
           #js {:className "h-100"}
           (ui/app-bar
             {:title                         "iolggr"
-             :on-left-icon-button-touch-tap #(om/set-state! this {:drawer-open? true})
-             }
-            )
+             :on-left-icon-button-touch-tap #(om/set-state! this {:drawer-open? true})})
+
+
           (ui/drawer
             {:open              drawer-open?
              :on-request-change #(om/set-state! this {:drawer-open? %})
@@ -123,12 +123,12 @@
                      {
                       :label         (get % :name)
                       :labelPosition "left"
-                      :onCheck  #(om/set-state! this {:drawer-open false})
-                      :checked       (get % :checked)}
-                     )
-                ) sensors))
+                      ;:onCheck  #(om/set-state! this {:drawer-open false})
+                      :checked       (get % :checked)}))
 
-            ))))))
+                 sensors))))))))
+
+
 
 
 (def reconciler
